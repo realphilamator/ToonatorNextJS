@@ -1,0 +1,70 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="47px" height="25px" viewBox="0 0 47 25">
+<defs>
+<g id="Symbol_3_0_Layer4_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 18 27
+Q 5 37 1 65
+L 0 101 16 286
+Q 35 469 52 469
+L 66 464 69 455
+Q 55 409 51 347
+L 49 243 43 134
+Q 36 74 18 27 Z"/>
+</g>
+
+<g id="Symbol_3_0_Layer3_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 882 13
+L 867 7 377 7 377 8 304 19 59 20 17 30 7 43 9 53 17 59 35 62 56 58 294 55 366 43 863 44
+Q 888 44 897 27
+L 882 13 Z"/>
+</g>
+
+<g id="Symbol_3_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 926 444
+L 907 428 805 429 541 454 80 455 69 457
+Q 62 460 62 471 62 482 67 486
+L 80 490 529 490 603 476 845 464 938 467 926 444 Z"/>
+</g>
+
+<g id="Symbol_3_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 874 0
+Q 861 10 858 43
+L 857 93
+Q 858 188 867 282 884 469 921 469 938 469 938 448 906 362 897 223 887 57 874 0 Z"/>
+</g>
+
+<g id="Symbol_3_0_Layer0_0_FILL">
+<path fill="#3399CC" fill-opacity="0" stroke="none" d="
+M 938 467
+L 938 27 18 27 18 467 938 467 Z"/>
+</g>
+</defs>
+
+<g id="sbSlider" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_3_0_Layer4_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_3_0_Layer3_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_3_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_3_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_3_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

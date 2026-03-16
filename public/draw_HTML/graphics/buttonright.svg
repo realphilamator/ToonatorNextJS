@@ -1,0 +1,63 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="22px" height="24px" viewBox="0 0 22 24">
+<defs>
+<g id="Symbol_7_0_Layer3_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 64 75
+Q 53 9 46 3 37 -4 37 73
+L 40 154 47 269 48 373
+Q 49 433 72 466
+L 82 461
+Q 88 458 89 458
+L 91 370
+Q 91 236 64 75 Z"/>
+</g>
+
+<g id="Symbol_7_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 409 112
+L 407 100 405 98
+Q 372 111 216 247 53 390 53 422 53 435 58 439
+L 72 443 286 243
+Q 409 123 409 112 Z"/>
+</g>
+
+<g id="Symbol_7_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 413 185
+Q 425 185 430 179
+L 440 162
+Q 410 132 209 59 8 -14 0 3 77 70 251 134 339 167 413 185 Z"/>
+</g>
+
+<g id="Symbol_7_0_Layer0_0_FILL">
+<path fill="#A2A1A1" fill-opacity="0" stroke="none" d="
+M 330 174
+Q 350 166 350 149 350 124 308 118 225 106 170 85 116 65 101 49 77 31 65 41 55 48 55 63 55 112 68 165 80 217 80 267
+L 72 345 74 361
+Q 80 377 97 377 105 377 147 332 197 276 214 262
+L 247 230
+Q 267 210 279 201 297 185 330 174 Z"/>
+</g>
+</defs>
+
+<g id="sbLeft" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_7_0_Layer3_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_7_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_7_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_7_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

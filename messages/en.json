@@ -1,0 +1,382 @@
+{
+  "popularTod": {
+    "noToons": "No toons of the day yet.",
+    "frames": "{count} frames"
+  },
+  "register": {
+    "title": "Sign up",
+    "usernameLabel": "Username:",
+    "usernamePlaceholder": "Letters, numbers, _ or -",
+    "usernameError": "Username must be 3–30 characters: letters, numbers, _ or - only",
+    "passwordLabel": "Password:",
+    "passwordError": "no password",
+    "repeatPasswordLabel": "Repeat password:",
+    "passwordMatchError": "passwords don't match",
+    "emailLabel": "E-mail:",
+    "emailError": "no email",
+    "registerButton": "Register"
+  },
+  "spiders": {
+    "titleLoggedOut": "Spooders (Spiders)",
+    "whatAre": "Certain actions on Toonator (such as downloading toons) require spooders. Spooders is the website's internal currency, which can be earned or purchased.",
+    "howToEarnTitle": "How to earn Spooders",
+    "howToEarn": "Spooders are given for toons drawn for the \"theme of the day\", for toons that are featured in top-10 popular, for participating in contests and other achievements in Toonator's development.",
+    "howToBuyTitle": "How to buy Spooders",
+    "howToBuyIntro": "Only <link>registered users</link> can buy spooders. To buy them you can use one of the following methods.",
+    "accruedNote": "Spiders are accrued within 24 hours after payment, or in the case of Patreon, immediately after connecting your account.",
+    "contactNote": "In case of encountering any issues you can contact us at",
+    "balance": "You have {count} spooders.",
+    "buyLink": "Buy spooders.",
+    "noActivity": "No spooder activity yet.",
+    "debit": "minus {count} spooders",
+    "credit": "{count} spooders",
+    "earnTitle": "How to earn spooders?",
+    "earnIntro": "Spooders are given for active participation in the life of the Toonator.",
+    "earnItem1": "A toon for the Topic of the Day.",
+    "earnItem2": "A toon in the TOP-10 most popular for more than 24 hours a week — 10 spooders for every hour it remains in the top spot.",
+    "earnItem3": "For participation in official contests.",
+    "buyTitle": "How to buy spooders?",
+    "buyBody": "If you don't want to earn spooders, but you really need them, or you just want to <b>help the project</b>, you can <link>buy spooders on a special page</link>.",
+    "perksNote": "Users who have purchased 500 Spooders in the last 30 days will receive special perks: <i>a nickname color change</i> and one free medal per day.",
+    "spendTitle": "But how to spend them?",
+    "spendBody": "Currently, spooders can be used to download toons, attach sounds to your toons, earn a spot in a <goodplaceLink>Good Place</goodplaceLink>, and gift medals. Soon, you'll be able to use them to pay other users for commissioned work. We're also developing other exciting services where spooders will be useful."
+  },
+  "spidersBuy": {
+    "breadcrumb": "Spooders — Purchase",
+    "intro": "On this page you can buy spooders.",
+    "chooseMethod": "Choose a payment method",
+    "rate": "Course of purchase: 1 dollar = <red>100</red> spooders.",
+    "messageHint": "In the donation message, please write: <b>Toonator: {username}</b>"
+  },
+  "profile": {
+    "changeAvatar": "[Change avatar]",
+    "totalToons": "Total toons:",
+    "totalDrafts": "Total drafts:",
+    "totalComments": "Total comments:",
+    "rank": "Rank:",
+    "privateMessages": "Private messages",
+    "loading": "Loading...",
+    "noFavorites": "No favorites yet.",
+    "noCommented": "No commented toons yet.",
+    "noToons": "No toons yet.",
+    "tabAlbum": "Album",
+    "tabFavorites": "Favorites",
+    "tabComments": "Comments",
+    "ranks": {
+      "unknown_animal": "Unknown Animal",
+      "archeologist": "Archeologist",
+      "passer": "Passer",
+      "animator": "Animator",
+      "artist": "Artist"
+    }
+  },
+  "toon": {
+    "untitled": "Untitled",
+    "watchDescription": "Watch this animation on Toonator",
+    "fallbackTitle": "Toon - Toonator",
+    "titleSuffix": "- Toonator"
+  },
+  "toonPage": {
+    "comments": "Comments",
+    "addComment": "Add comment",
+    "writeComment": "Write a comment...",
+    "posting": "Posting...",
+    "post": "Post",
+    "cancel": "Cancel",
+    "noComments": "No comments yet.",
+    "commentTooLong": "Comment must be 250 characters or less.",
+    "commentError": "Error posting comment: {error}",
+    "like": "Like",
+    "favorites": "Favorites",
+    "continue": "Continue",
+    "share": "Share:",
+    "original": "Original",
+    "favoritesSoon": "Favorites coming soon!",
+    "loginToLike": "Please log in to like",
+    "loginToComment": "Please log in to comment"
+  },
+  "home": {
+    "mostPopular": "Most popular toons",
+    "newest": "Newest toons",
+    "noToons": "No toons yet.",
+    "tagline1": "Toonator is online cartoon editing tool.",
+    "tagline2": "With Toonator you can easily make funny animations.",
+    "goodPlace": "Good Place",
+    "frames": "{count, plural, one {# frame} other {# frames}}",
+    "comments": "{count, plural, one {# comment} other {# comments}}"
+  },
+  "notFound": {
+    "title": "Page Not Found"
+  },
+  "static": {
+    "oldschool": "Oldschool",
+    "staticLabel": "Static",
+    "sandbox": "Sandbox",
+    "noToons": "No toons yet.",
+    "goodPlace": "Good Place",
+    "lastComments": "Last comments",
+    "frames": "{count, plural, one {# frame} other {# frames}}"
+  },
+  "sandbox": {
+    "oldschool": "Oldschool",
+    "staticLabel": "Static",
+    "sandbox": "Sandbox",
+    "noToons": "No toons yet.",
+    "goodPlace": "Good Place",
+    "lastComments": "Last comments",
+    "frames": "{count, plural, one {# frame} other {# frames}}"
+  },
+  "metadata": {
+    "register": {
+      "title": "Sign up - Toonator"
+    },
+    "popularTod": {
+      "title": "Toon of the day - Toonator.com"
+    },
+    "static": {
+      "title": "Static - Toonator.com",
+      "description": "Browse single-frame animations on Toonator."
+    },
+    "sandbox": {
+      "title": "Sandbox - Toonator.com",
+      "description": "Browse animations from new Toonator users."
+    },
+    "home": {
+      "title": "Toonator.com - Make animation online!",
+      "description": "Toonator is online cartoon editing tool.",
+      "ogTitle": "Toonator",
+      "ogDescription": "Toonator is online cartoon editing tool."
+    },
+    "toon": {
+      "fallbackTitle": "Toon - Toonator",
+      "titleSuffix": "- Toonator",
+      "fallbackDescription": "Watch this animation on Toonator"
+    },
+    "goodPlace": {
+      "title": "Good Place — Toonator",
+      "description": "Feature your animation in the Good Place using spiders."
+    },
+    "popular": {
+      "title": "Most popular toons - Toonator.com"
+    },
+    "popularWeek": {
+      "title": "Most popular toons this week - Toonator.com"
+    },
+    "popularDay": {
+      "title": "Most popular toons today - Toonator.com"
+    },
+    "last": {
+      "title": "Last toons - Toonator.com",
+      "description": "Browse the latest animations on Toonator."
+    },
+    "draft": {
+      "fallbackTitle": "Draft - Toonator",
+      "titleSuffix": "(Draft) - Toonator",
+      "fallbackDescription": "A draft animation on Toonator"
+    }
+  },
+  "avatarChooser": {
+    "title": "Choose avatar",
+    "loading": "Loading...",
+    "noToons": "No toons found.",
+    "loadMore": "Load more",
+    "untitled": "Untitled",
+    "frames": "{count} frames"
+  },
+  "toonCard": {
+    "untitled": "Untitled",
+    "frames": "{count, plural, one {# frame} other {# frames}}",
+    "framesTooltip": "Original: {title}",
+    "framesTooltipWithAuthor": "Original: {title} ({author})",
+    "continuedTooltip": "Continued from another toon",
+    "noComments": "No comments",
+    "comments": "{count, plural, one {<b>#</b> comment} other {<b>#</b> comments}}",
+    "inAlbum": "In album",
+    "notInAlbum": "Not In album"
+  },
+  "spooderSources": {
+    "kofi": "for Ko-fi purchase.",
+    "boosty": "for Boosty purchase.",
+    "patreon": "for Patreon support.",
+    "admin": "awarded by admin.",
+    "mod_helper": "for mod activity.",
+    "spend": "spent.",
+    "spend_good_place": "for Good Place."
+  },
+  "draw": {
+    "continueAnimation": "Continue animation",
+    "newAnimation": "New animation",
+    "editDraft": "Edit draft",
+    "hide": "hide",
+    "enablePalettePrompt": "Click <link>here</link> to enable palette.",
+    "help": "Help",
+    "unsavedChanges": "You have unsaved changes."
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications yet.",
+    "pleaseLogIn": "Please log in.",
+    "reason_like": "<link>{actor}</link> liked your toon",
+    "reason_comment": "<link>{actor}</link> commented on your toon",
+    "reason_unknown": "{reason}"
+  },
+  "goodPlace": {
+    "title": "Good Place",
+    "description": "Good Place — special place on some pages of Toonator, which can be occupied by any user!",
+    "spoodersNeeded": "All you need is some count of <link>spooders</link>.",
+    "occupiedDuration": "Good Place can be occupied for <b>12 hours</b>, but it may be overbought by another user, if he will make a bet higher. However your previous bid does not returned to you.",
+    "anyToon": "You can choose any toon for the Good Place, your own as well as someone else. The place is bought anonymously (buyer is visible only for the Administrator).",
+    "illegalWarning": "If the posted toon contains illegal scenes, the Good Place can be released by the Administrator. In this case, the spooders will not be returned, and place is occupied by previous buyer. User who placed such illegal toon can be penalized.",
+    "placeIsFree": "Place is free",
+    "placeIsAcquired": "Place is acquired",
+    "acquireTitle": "Acquire",
+    "previousCartoons": "Previous cartoons:",
+    "noHistory": "No history yet.",
+    "minimumBid": "Minimum bid: {count, plural, one {# spooder} other {# spooders}}.",
+    "lastBid": "Last bid: {count, plural, one {# spooder} other {# spooders}}.",
+    "acquiredTill": "Acquired till: {expiry}.",
+    "onlyRegistered": "Only registered user can put an animation at Good Place.",
+    "yourBalance": "Your balance: {count, plural, one {<b># spider</b>} other {<b>#</b> spiders}}",
+    "toonUrlLabel": "Toon URL",
+    "toonUrlPlaceholder": "URL, UUID, or legacy ID",
+    "spidersLabel": "Spiders (min {min})",
+    "acquireButton": "Acquire",
+    "errorWrongUrl": "Wrong toon url or ID",
+    "errorWrongSpiders": "Wrong spiders count",
+    "frames": "{count, plural, one {# frame} other {# frames}}",
+    "comments": "{count, plural, one {# comment} other {# comments}}",
+    "noComments": "No comments",
+    "spooders": "{count, plural, one {# spooder} other {# spooders}}"
+  },
+  "draft": {
+    "badge": "Draft",
+    "continuedFrom": "Continued from:",
+    "continueButton": "Continue",
+    "removeDraft": "Remove draft",
+    "confirmRemove": "Remove this draft?",
+    "untitled": "Untitled"
+  },
+  "popular": {
+    "title": "Popular:",
+    "allTime": "All time",
+    "thisWeek": "This week",
+    "thisDay": "This day",
+    "toonOfTheDay": "Toon of the day",
+    "noToons": "No toons yet.",
+    "noToonsToday": "No toons today yet.",
+    "noToonsThisWeek": "No toons this week yet.",
+    "lastComments": "Last comments",
+    "frames": "{count} frames",
+    "untitled": "Untitled"
+  },
+  "last": {
+    "oldschool": "Oldschool",
+    "static": "Static",
+    "sandbox": "Sandbox",
+    "noToons": "No toons yet.",
+    "goodPlace": "Good Place",
+    "lastComments": "Last comments",
+    "frames": "{count, plural, one {# frame} other {# frames}}"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "loading": "Loading...",
+    "savedOk": "Settings saved!",
+    "errorSaving": "Error saving settings: {error}",
+    "errorUnexpected": "Unexpected error: {error}",
+    "nav": {
+      "myPage": "My page",
+      "settings": "Settings",
+      "changePassword": "Change password",
+      "socialNetworks": "Social networks",
+      "blacklist": "Blacklist"
+    },
+    "aboutMe": {
+      "title": "About me",
+      "birthDate": "Birth date:",
+      "showBirthdate": "Show my datebirth",
+      "hideBirthdate": "Hide my datebirth",
+      "ageOnly": "Show age only"
+    },
+    "rankStatus": {
+      "title": "Rank and status",
+      "rankLabel": "Rank:",
+      "moreAboutRanks": "More info about ranks.",
+      "displayAs": "Display as:",
+      "monarchNote": "As a Monarch you can choose an alternative display name.",
+      "hideRank": "Dont show rank on my page",
+      "statusLabel": "Status:",
+      "moreAboutStatus": "More info about status.",
+      "default": "(default)"
+    },
+    "ranks": {
+      "unknown_animal": {
+        "label": "Unknown animal",
+        "desc": "Your toons go neither to New nor to Sandbox."
+      },
+      "archeologist": {
+        "label": "Archeologist",
+        "desc": "Your toons go directly to the Sandbox."
+      },
+      "passer": {
+        "label": "Passer",
+        "desc": "You're finding your way — between Sandbox and New."
+      },
+      "animator": {
+        "label": "Animator",
+        "desc": "A trusted regular user of Toonator."
+      }
+    },
+    "statuses": {
+      "ordinary": "Yet Another User",
+      "cowboy": "Cowboy",
+      "monarch": "The Monarch"
+    },
+    "promotion": {
+      "title": "Apply for rank promotion",
+      "info": "Your current rank is <b>{rank}</b>. {desc} You can submit a promotion request, but no more than <b>twice per month</b>.",
+      "pending": "⏳ You have a request currently being reviewed. Results within 24 hours.",
+      "lastRequest": "Last request: {date}. Requests used this month: {used}/2.",
+      "noRequests": "You haven't submitted a request yet. You may apply up to twice per month.",
+      "placeholder": "Tell us about yourself and link your best toons...",
+      "sendButton": "Send promotion request",
+      "sending": "Sending...",
+      "errorEmpty": "Please write something about yourself before submitting.",
+      "errorTooShort": "Please write at least 20 characters.",
+      "errorLimit": "You have already submitted 2 promotion requests this month.",
+      "errorPending": "You already have a pending promotion request being reviewed.",
+      "successMsg": "Promotion request submitted! Moderators will review it within 24 hours.",
+      "errorSubmit": "Error submitting request: {error}"
+    },
+    "nickColor": {
+      "title": "Nick color",
+      "cooldownNote": "Color of the nickname can be changed only one time in 24 hours.",
+      "notAllowed": "Only cowboys can change color of their nicknames."
+    },
+    "usernameIcon": {
+      "title": "Username icon",
+      "patreonNote": "As a Patreon supporter you can set a small icon that appears next to your username everywhere on the site. Recommended: 32 × 32 px PNG / GIF / WebP. Max 128 KB.",
+      "noIcon": "No icon set yet.",
+      "uploading": "Uploading…",
+      "changeIcon": "Change icon",
+      "uploadIcon": "Upload icon",
+      "removeIcon": "Remove icon",
+      "iconSaved": "Icon saved!",
+      "iconRemoved": "Icon removed.",
+      "notPatreon": "This feature is for Patreon supporters.",
+      "upgradeLink": "Upgrade your membership",
+      "upgradeSuffix": "to unlock it.",
+      "connectPatreon": "Connect Patreon",
+      "connectSuffix": "to get started."
+    },
+    "spoodersPatreon": {
+      "title": "Spooders & Patreon",
+      "note": "Connect your Patreon account to automatically receive spooders based on your pledge tier. Your current balance: <b>{count} spooders</b>.",
+      "connected": "✓ Patreon connected",
+      "disconnect": "Disconnect",
+      "connect": "Connect Patreon"
+    },
+    "submit": "Submit",
+    "saving": "Saving..."
+  }
+}

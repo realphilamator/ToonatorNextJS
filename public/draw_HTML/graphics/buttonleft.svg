@@ -1,0 +1,67 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="18px" height="26px" viewBox="0 0 18 26">
+<defs>
+<g id="Symbol_5_0_Layer3_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 313 15
+L 311 3 309 0
+Q 271 11 143 129 16 247 16 269
+L 17 287
+Q 20 297 35 302
+L 47 298
+Q 68 224 194 120
+L 277 54
+Q 313 24 313 15 Z"/>
+</g>
+
+<g id="Symbol_5_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 0 257
+L 2 269
+Q 22 278 66 317
+L 151 394
+Q 268 497 309 497 340 497 352 486 360 478 360 464 360 451 356 448 355 446 340 443 285 440 236 406 206 386 157 336 110 288 85 273 44 247 0 257 Z"/>
+</g>
+
+<g id="Symbol_5_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 338 328
+L 325 192 321 137 317 81
+Q 311 49 289 19 266 -11 266 32 266 127 285 285 305 448 325 505
+L 336 501 342 497 344 421 338 328 Z"/>
+</g>
+
+<g id="Symbol_5_0_Layer0_0_FILL">
+<path fill="#CCCCCC" fill-opacity="0" stroke="none" d="
+M 285 92
+Q 284 67 275 55 261 30 239 57
+L 206 107 127 174
+Q 50 241 50 258 50 274 60 280
+L 93 301 122 327 155 352 196 376 228 399 249 423
+Q 272 445 291 445 315 445 320 422
+L 320 389
+Q 320 360 308 330
+L 287 261 287 132 285 92 Z"/>
+</g>
+</defs>
+
+<g id="sbLeft" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_5_0_Layer3_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_5_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_5_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_5_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

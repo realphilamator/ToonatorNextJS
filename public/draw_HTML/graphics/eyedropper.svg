@@ -1,0 +1,55 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24">
+<defs>
+<g id="Symbol_88_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 380 41
+L 365 39 353 33
+Q 334 28 311 49 302 57 292 74
+L 277 96 258 115 250 91
+Q 238 64 222 77 208 88 208 102 208 123 225 151
+L 187 189
+Q 168 206 148 237
+L 116 283
+Q 98 305 93 332 90 346 90 377
+L 90 409 91 413 90 417
+Q 88 437 110 439
+L 112 439 114 439
+Q 124 439 141 429 158 418 164 418
+L 185 416 194 417 204 411 213 402 267 342
+Q 291 289 310 262
+L 328 238 346 239
+Q 382 239 382 217 382 203 360 195
+L 384 162 427 100
+Q 427 79 414 79 411 50 380 41
+M 355 71
+L 363 81 375 95
+Q 354 110 343 134
+L 313 182
+Q 293 173 280 155
+L 321 109 355 71
+M 243 197
+L 251 188 284 219 283 220
+Q 267 244 236 306
+L 197 351 179 373 160 374 134 382 134 341 179 270 209 234 243 197 Z"/>
+</g>
+
+<g id="Symbol_88_0_Layer0_0_FILL">
+<path fill="#000000" fill-opacity="0.011764705882352941" stroke="none" d="
+M 0 0
+L 0 480 480 480 480 0 0 0 Z"/>
+</g>
+</defs>
+
+<g id="btnPicker" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_88_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_88_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

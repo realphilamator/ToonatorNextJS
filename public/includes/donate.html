@@ -1,0 +1,94 @@
+<!--
+  TOONATOR DONATION BANNER
+-->
+<style>
+  #donate_wrap {
+    width: 1000px;
+    margin: 0 auto;
+    background: #FFFFED;
+    border-bottom: 1px solid #cccccc;
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    overflow: hidden;
+    max-height: 200px;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 1;
+  }
+  #donate_wrap.collapsed {
+    max-height: 0;
+    opacity: 0;
+  }
+  #donate_inner {
+    padding: 6px 30px 6px 8px;
+    font-size: 12px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    color: black;
+    position: relative;
+  }
+  #donate_inner a.kofi_link {
+    color: #0000ff;
+    font-family: ToonatorFont, "Comic Sans MS";
+    font-size: 13pt;
+    text-decoration: none;
+  }
+  #donate_inner a.kofi_link:hover {
+    text-decoration: underline;
+  }
+  #donate_close {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #000;
+    font-size: 10px;
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0 2px;
+    line-height: 1;
+  }
+  #donate_close:hover {
+    color: #ff0000;
+  }
+  #donate_reopen {
+    display: none;
+    width: 1000px;
+    margin: 0 auto;
+    background: #FFFFED;
+    border-bottom: 1px solid #cccccc;
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+    border-bottom-right-radius: 7px;
+    border-bottom-left-radius: 7px;
+    text-align: right;
+    padding: 2px 6px;
+    box-sizing: border-box;
+  }
+  #donate_reopen a {
+    font-size: 10px;
+    color: #888888;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  #donate_reopen a:hover {
+    color: black;
+    text-decoration: underline;
+  }
+</style>
+<div id="donate_wrap">
+  <div id="donate_inner">
+    <span class="donate_msg">
+      Please donate to help keep Toonator up and running. Every contribution helps keep the site online for everyone.
+      <a class="kofi_link" href="https://ko-fi.com/riverwagner" target="_blank" rel="noopener">☕ Support on Ko-fi</a>
+    </span>
+    <a id="donate_close" title="Hide">✕</a>
+  </div>
+</div>
+<div id="donate_reopen">
+  <a id="donate_reopen_btn">show donation info ▾</a>
+</div>

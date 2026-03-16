@@ -1,0 +1,42 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24">
+<defs>
+<g id="Symbol_21_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 53 22
+Q 40 51 40 148 44 219 60 305 92 480 150 480 169 480 285 357 410 224 420 160 333 121 221 60 131 11 106 3 67 -9 53 22
+M 160 310
+L 148 222 140 145
+Q 174 135 265 205
+L 160 310 Z"/>
+</g>
+
+<g id="Symbol_21_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 210 360
+Q 240 360 291 295 340 232 340 205 120 -75 120 170 119 210 130 259 152 360 210 360 Z"/>
+</g>
+
+<g id="Symbol_21_0_Layer0_0_FILL">
+<path fill="#666633" fill-opacity="0" stroke="none" d="
+M 480 480
+L 480 0 0 0 0 480 480 480 Z"/>
+</g>
+</defs>
+
+<g id="btnPlay" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_21_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_21_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_21_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

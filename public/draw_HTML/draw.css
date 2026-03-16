@@ -1,0 +1,531 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#editor {
+  width: 600px;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+#bottomBar {
+  width: 600px;
+  height: 90px;
+  background: #cccccc;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* timeline strip (top row) */
+
+#timeline {
+  height: 24px;
+  width: 516px;
+  margin: 3px 3px;
+  display: flex;
+  background: #fff;
+  position: absolute;
+  right: 0;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+#timeline::-webkit-scrollbar {
+  display: none;
+}
+
+#framesSlider {
+  position: absolute;
+  width: 515.5px;
+  height: 27px;
+  right: 3px;  /* match timeline's right: 0 + margin */
+  top: 29.95px;
+}
+
+#scrollPrev {
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 18px;
+  height: 25.25px;
+  cursor: pointer;
+  background: url('./graphics/buttonleft.svg') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+#scrollNext {
+  position: absolute;
+  right: 0px;
+  top: 0.7px;
+  width: 22px;
+  height: 23.3px;
+  cursor: pointer;
+  background: url('./graphics/buttonright.svg') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+#scrollBar {
+  position: absolute;
+  left: 16.5px;
+  top: 0px;
+  width: 479px;
+  height: 27px;
+}
+
+
+#scrollSlider {
+  position: absolute;
+  top: 0;
+  width: 46.9px;
+  height: 24.5px;
+  background: url('./graphics/scrollBar.svg') no-repeat center center;
+  background-size: 100% 100%;
+  cursor: pointer;
+}
+
+
+
+/* frame numbers */
+
+.frameBox {
+  width: 49px;
+  height: 24px;
+  border: none;              /* no border by default */
+  text-align: center;
+  font-size: 11px;
+  color: red;
+  cursor: pointer;
+  line-height: 24px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+/* previous frame */
+
+.frameBox.prev {
+  border: 1px solid #555555;
+}
+
+/* current frame */
+
+.frameBox.active {
+  border: 1px solid red;
+}
+
+/* toolbar row */
+
+#toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 600px;
+  height: 90px;
+}
+
+#toolbar {
+  pointer-events: none;
+}
+
+#btnAdd, #btnDelete, #btnPlay, #btnPause, #btnSave, #btnPencil, #btnEraser, #btnFill {
+  pointer-events: auto;
+}
+
+#btnEyedropper { 
+  position: absolute; 
+  width: 24px; 
+  height: 24px; 
+  left: 75.8px; 
+  top: 62px; 
+  cursor: crosshair; 
+  background: url('./graphics/eyedropper.svg') no-repeat center center; 
+  background-size: 100% 100%;
+  pointer-events: auto;
+}
+
+#btnFill {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  left: 108.85px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  background: url('./graphics/fill.svg') no-repeat center center;
+  background-size: 100% 100%;
+}
+
+.btnActive {
+  filter: invert(10%) sepia(100%) saturate(5000%) hue-rotate(210deg) brightness(80%);
+}
+
+#btnAdd    { position: absolute; width: 24px; height: 24px; left: 11px;   top: 3px;    cursor: pointer; background: url('./graphics/addFrame.svg') no-repeat center center; background-size: 100% 100%; }
+#btnDelete { position: absolute; width: 24px; height: 24px; left: 45px;   top: 3px;    cursor: pointer; background: url('./graphics/removeFrame.svg') no-repeat center center; background-size: 100% 100%; }
+#btnPlay   { position: absolute; width: 24px; height: 24px; left: 15.5px; top: 34px;   cursor: pointer; background: url('./graphics/play.svg') no-repeat center center; background-size: 100% 100%; }
+#btnPause  { position: absolute; width: 24px; height: 24px; left: 15.5px; top: 34px;   cursor: pointer; background: url('./graphics/pause.svg') no-repeat center center; background-size: 100% 100%; display: none; }
+#btnSave   { position: absolute; width: 24px; height: 24px; left: 47.5px; top: 34.5px; cursor: pointer; background: url('./graphics/save.svg') no-repeat center center; background-size: 100% 100%; }
+#btnPencil { position: absolute; width: 24px; height: 24px; left: 16.5px;   top: 62px; cursor: pointer; background: url('./graphics/pencil.svg') no-repeat center center; background-size: 100% 100%; }
+#btnEraser { position: absolute; width: 24px; height: 24px; left: 46.15px;  top: 62px; cursor: pointer; background: url('./graphics/eraser.svg') no-repeat center center; background-size: 100% 100%; }
+#btnSize1, #btnSize2, #btnSize3, #btnSize4, #btnSize5 {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+#btnSize1 { left: 148.85px; background-image: url('./graphics/size1.svg'); }
+#btnSize2 { left: 178.5px;  background-image: url('./graphics/size2.svg'); }
+#btnSize3 { left: 208.15px; background-image: url('./graphics/size3.svg'); }
+#btnSize4 { left: 237.8px;  background-image: url('./graphics/size4.svg'); }
+#btnSize5 { left: 267.45px; background-image: url('./graphics/size5.svg'); }
+
+.btnSizeActive {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+#btnColorBlack, #btnColorRed, #btnColorCustom {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+#btnColorBlack, #btnColorRed {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#btnColorBlack { left: 313.55px; }
+#btnColorRed   { left: 341.55px; }
+
+.colorInner {
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+#btnColorCustom { left: 369.85px; background: #ffffff; }
+
+#btnColorCustom {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#btnColorCustom.enabled {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#colorPalette {
+  position: absolute;
+  display: none;
+  left: 369.85px;
+  bottom: 30px;
+  background: white;
+  border: 1px solid #888;
+  padding: 4px;
+  z-index: 100;
+  pointer-events: auto;
+}
+#colorPalette input[type="text"] {
+  width: 80px;
+  margin-bottom: 4px;
+  display: block;
+  font-size: 11px;
+}
+#colorPaletteGrid {
+  display: grid;
+  grid-template-columns: repeat(18, 12px);
+  gap: 1px;
+}
+.colorSwatch {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+}
+
+/* =====================================================
+   LAYER TOGGLE BUTTON
+===================================================== */
+
+#btnLayerToggle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  right: 34px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  background: url('./graphics/layers.svg') no-repeat center center;
+  background-size: 100% 100%;
+}
+#btnLayerToggle:hover { opacity: 0.7; }
+#btnLayerToggle.active { filter: invert(10%) sepia(100%) saturate(5000%) hue-rotate(210deg) brightness(80%); }
+
+/* =====================================================
+   LAYER SIDE PANEL
+===================================================== */
+
+#layerSidePanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 160px;
+  height: 300px;   /* canvas height only — doesn't bleed into toolbar */
+  background: rgba(58, 58, 58, 0.96);
+  box-shadow: none;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  color: #eee;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  box-sizing: border-box;
+}
+
+#layerSidePanel.open {
+  transform: translateX(0);
+}
+
+#layerSideHeader {
+  padding: 10px 12px 8px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.45);
+  border-bottom: 1px solid rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+#layerSideList {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px 0;
+}
+
+#layerSideList::-webkit-scrollbar { width: 4px; }
+#layerSideList::-webkit-scrollbar-track { background: transparent; }
+#layerSideList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+.layerRow {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+  gap: 7px;
+  user-select: none;
+  border-left: 3px solid transparent;
+  box-sizing: border-box;
+}
+
+.layerRow:hover { background: rgba(255,255,255,0.07); }
+
+.layerRow.active {
+  background: rgba(255,255,255,0.13);
+  border-left-color: #ff6666;
+}
+
+.layerThumb {
+  width: 36px;
+  height: 20px;
+  background: #fff;
+  border-radius: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.layerThumb canvas {
+  display: block;
+}
+
+.layerName {
+  flex: 1;
+  font-size: 11px;
+  color: #ddd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  outline: none;
+}
+
+.layerRow.active .layerName { color: #fff; }
+
+.layerEyeBtn {
+  font-size: 11px;
+  opacity: 0.5;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.layerEyeBtn:hover { opacity: 1; }
+.layerEyeBtn.hidden { opacity: 0.2; }
+
+#layerSideControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 10px;
+  border-top: 1px solid rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+
+#layerSideControls > div {
+  background: #555;
+  color: #eee;
+  border: 1px solid #333;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 4px 8px;
+  text-align: center;
+  user-select: none;
+}
+#layerSideControls > div:hover { background: #777; }
+#btnLayerAdd   { flex: 1 1 100%; }
+#btnLayerDelete { flex: 1; }
+#btnLayerUp, #btnLayerDown { flex: 0 0 28px; }
+
+
+
+#btnSettings {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  right: 6px;
+  top: 62px;
+  cursor: pointer;
+  pointer-events: auto;
+  background: url('./graphics/settings.svg') no-repeat center center;
+  background-size: 100% 100%;
+}
+#btnSettings:hover { opacity: 0.7; }
+
+
+/* =====================================================
+   SETTINGS OVERLAY + PANEL
+   Matches save dialog exactly: full-screen dim, centered box
+===================================================== */
+
+#settingsOverlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 9998;
+  align-items: center;
+  justify-content: center;
+}
+#settingsOverlay.open {
+  display: flex;
+}
+
+#settingsPanel {
+  background: #555555;
+  border-radius: 8px;
+  padding: 24px 28px;
+  width: 340px;
+  font-family: Arial, sans-serif;
+  font-size: 13px;
+  color: #fff;
+  position: relative;
+  box-sizing: border-box;
+}
+
+#settingsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+#settingsTitle {
+  font-size: 13px;
+  font-weight: bold;
+  color: #fff;
+}
+#settingsClose {
+  cursor: pointer;
+  color: #ddd;
+  font-size: 15px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+#settingsClose:hover { background: rgba(0,0,0,0.2); }
+
+.settingsGroupLabel {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 10px;
+  margin-top: 4px;
+}
+.settingsGroup + .settingsGroup {
+  border-top: 1px solid rgba(0,0,0,0.2);
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.settingsRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+label.settingsRow { cursor: pointer; }
+.settingsRow > span {
+  width: 100px;
+  min-width: 100px;
+  color: #ddd;
+}
+.settingsHint {
+  display: block;
+  color: rgba(255,255,255,0.35);
+  font-size: 10px;
+}
+
+/* no accent-color — browser default blue, same as save dialog */
+.settingsRow input[type=checkbox] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.settingsSliderWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+.settingsRow input[type=range] {
+  flex: 1;
+  cursor: pointer;
+}
+.settingsVal {
+  width: 30px;
+  text-align: right;
+  color: #ffcc88;
+  font-size: 11px;
+  flex-shrink: 0;
+}

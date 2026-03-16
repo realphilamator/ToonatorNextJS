@@ -1,0 +1,45 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24">
+<defs>
+<g id="Symbol_15_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 476 4
+L 473 0
+Q 399 5 218 176 44 341 44 380
+L 46 408
+Q 52 424 80 432
+L 332 180
+Q 480 33 480 24 480 6 476 4 Z"/>
+</g>
+
+<g id="Symbol_15_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 4 37
+Q 0 34 0 64 0 73 196 273 400 480 436 480 451 480 460 471
+L 480 444
+Q 439 411 241 222 89 77 4 37 Z"/>
+</g>
+
+<g id="Symbol_15_0_Layer0_0_FILL">
+<path fill="#000000" fill-opacity="0.011764705882352941" stroke="none" d="
+M 0 0
+L 0 480 480 480 480 0 0 0 Z"/>
+</g>
+</defs>
+
+<g id="btnDelFrame" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_15_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_15_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_15_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

@@ -1,0 +1,443 @@
+/* ============================================================
+   THEME VARIABLES — Light Mode (default)
+   ============================================================ */
+:root {
+    --color-bg:              #ffffff;
+    --color-text:            #000000;
+    --color-border:          #cccccc;
+    --color-border-light:    #eeeeee;
+
+    /* Header */
+    --color-header-link:     #000000;
+    --color-header-link-hover: #0000ff;
+
+    /* Dropdown menu */
+    --color-menu-bg:         #ffffff;
+    --color-menu-link:       #000000;
+    --color-menu-hover-bg:   #eeeeee;
+
+    /* Counters / badges */
+    --color-counter-bg:      rgba(255, 255, 255, 0.8);
+
+    /* Content */
+    --color-footer-text:     #888888;
+    --color-footer-link:     #888888;
+    --color-footer-link-hover: #000000;
+
+    /* Toon previews */
+    --color-toon-bg:         #eeeeee;
+    --color-toon-name:       #555555;
+
+    /* Paginator */
+    --color-pager-link:      #555555;
+    --color-pager-hover-bg:  #eeeeee;
+    --color-pager-current-border: #888888;
+
+    /* Buttons */
+    --color-btn-bg:          #dddddd;
+    --color-btn-text:        #888888;
+    --color-btn-hover-bg:    #cccccc;
+    --color-btn-hover-text:  #000000;
+
+    /* Native buttons */
+    --color-button-bg-top:   #ffffff;
+    --color-button-bg-bot:   #efefef;
+    --color-button-bg:       #f6f6f6;
+    --color-button-border:   #cccccc;
+    --color-button-shadow:   #999999;
+
+    /* Notify bar */
+    --color-notify-bg:       #ffffed;
+
+    /* Misc text helpers */
+    --color-gray-text:       #888888;
+    --color-muted:           #555555;
+
+    /* .gray utility class */
+    --color-gray-bg:         #eeeeee;
+
+    /* Pages pagination */
+    --color-pages-link:      #888888;
+    --color-pages-link-bg:   #eeeeee;
+    --color-pages-hover-bg:  #cccccc;
+    --color-pages-current-bg:#ddffdd;
+
+    /* .sn info block */
+    --color-info-block-bg:   #eeeeee;
+
+    /* .sn login popup */
+    --color-popup-bg:        #ffffff;
+    --color-popup-close:     #cccccc;
+
+    /* .sn input */
+    --color-input-border:    #cccccc;
+    --color-input-shadow:    #dddddd;
+
+    /* Hint */
+    --color-hint-bg:         rgba(255, 200, 200, 0.8);
+    --color-hint-border:     #cccccc;
+    --color-hint-close:      #cc8888;
+
+    /* Draft toons */
+    --color-draft-bg:        #333333;
+    --color-draft-text:      #ffffff;
+
+    /* Cite link */
+    --color-cite:            #cccccc;
+    --color-cite-hover:      #555555;
+
+    /* Toggle button */
+    --color-toggle-bg:       #eeeeee;
+    --color-toggle-icon:     #333333;
+}
+
+/* ============================================================
+   THEME VARIABLES — Dark Mode
+   ============================================================ */
+[data-theme="dark"] {
+    --color-bg:              #1a1a1a;
+    --color-text:            #e0e0e0;
+    --color-border:          #444444;
+    --color-border-light:    #333333;
+
+    --color-header-link:     #e0e0e0;
+    --color-header-link-hover: #7aadff;
+
+    --color-menu-bg:         #2a2a2a;
+    --color-menu-link:       #e0e0e0;
+    --color-menu-hover-bg:   #3a3a3a;
+
+    --color-counter-bg:      rgba(30, 30, 30, 0.85);
+
+    --color-footer-text:     #777777;
+    --color-footer-link:     #777777;
+    --color-footer-link-hover: #e0e0e0;
+
+    --color-toon-bg:         #2a2a2a;
+    --color-toon-name:       #aaaaaa;
+
+    --color-pager-link:      #aaaaaa;
+    --color-pager-hover-bg:  #3a3a3a;
+    --color-pager-current-border: #666666;
+
+    --color-btn-bg:          #3a3a3a;
+    --color-btn-text:        #aaaaaa;
+    --color-btn-hover-bg:    #4a4a4a;
+    --color-btn-hover-text:  #e0e0e0;
+
+    --color-button-bg-top:   #3a3a3a;
+    --color-button-bg-bot:   #2a2a2a;
+    --color-button-bg:       #333333;
+    --color-button-border:   #555555;
+    --color-button-shadow:   #111111;
+
+    --color-notify-bg:       #2a2a1a;
+
+    --color-gray-text:       #777777;
+    --color-muted:           #aaaaaa;
+
+    --color-gray-bg:         #2a2a2a;
+
+    --color-pages-link:      #888888;
+    --color-pages-link-bg:   #2a2a2a;
+    --color-pages-hover-bg:  #3a3a3a;
+    --color-pages-current-bg:#1a3a1a;
+
+    --color-info-block-bg:   #2a2a2a;
+
+    --color-popup-bg:        #252525;
+    --color-popup-close:     #555555;
+
+    --color-input-border:    #555555;
+    --color-input-shadow:    #111111;
+
+    --color-hint-bg:         rgba(80, 40, 40, 0.85);
+    --color-hint-border:     #555555;
+    --color-hint-close:      #885555;
+
+    --color-draft-bg:        #111111;
+    --color-draft-text:      #cccccc;
+
+    --color-cite:            #555555;
+    --color-cite-hover:      #aaaaaa;
+
+    --color-toggle-bg:       #333333;
+    --color-toggle-icon:     #e0e0e0;
+}
+
+/* ============================================================
+   APPLY VARIABLES — replace hardcoded values in your styles
+   Add this AFTER your existing stylesheet, or merge into it.
+   ============================================================ */
+
+body {
+    background-color: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* Header */
+#header {
+    border-bottom-color: var(--color-border);
+}
+#header a {
+    color: var(--color-header-link);
+}
+#header a:hover {
+    color: var(--color-header-link-hover);
+}
+
+/* Dropdown menus */
+#newmenu > li ul {
+    background: var(--color-menu-bg);
+    border-color: var(--color-border-light);
+}
+#newmenu li ul li a {
+    color: var(--color-menu-link);
+}
+#newmenu li ul li a:hover {
+    background: var(--color-menu-hover-bg);
+}
+#newmenu > li a .counter {
+    background: var(--color-counter-bg);
+}
+
+/* Content border */
+#content {
+    border-bottom-color: var(--color-border);
+}
+
+/* Footer */
+#footer {
+    color: var(--color-footer-text);
+}
+#footer a {
+    color: var(--color-footer-link);
+}
+#footer a:hover {
+    color: var(--color-footer-link-hover);
+}
+
+/* Toon previews */
+.toon_preview {
+    background-color: var(--color-toon-bg);
+}
+.toon_preview .toon_name a,
+.toon_preview .toon_name_top a {
+    color: var(--color-toon-name);
+}
+
+/* Draft toons */
+.draft {
+    background: var(--color-draft-bg);
+    color: var(--color-draft-text);
+}
+.draft .toon_name a,
+.draft .toon_tagline,
+.draft .toon_tagline a {
+    color: var(--color-draft-text);
+}
+
+/* Paginator */
+div.paginator ul li a {
+    color: var(--color-pager-link);
+}
+div.paginator ul li a:hover,
+div.paginator ul li.current a {
+    background: var(--color-pager-hover-bg);
+    color: var(--color-text);
+}
+div.paginator ul li.current a {
+    border-color: var(--color-pager-current-border);
+}
+
+/* .btn links */
+a.btn {
+    background: var(--color-btn-bg);
+    color: var(--color-btn-text);
+}
+a.btn:hover {
+    color: var(--color-btn-hover-text);
+    background: var(--color-btn-hover-bg);
+}
+
+/* Native buttons */
+button {
+    background: linear-gradient(to bottom, var(--color-button-bg-top), var(--color-button-bg-bot)) var(--color-button-bg);
+    border-color: var(--color-button-border);
+    color: var(--color-text);
+}
+button:hover,
+button:focus {
+    box-shadow: 0 0 3px var(--color-button-shadow);
+    background: linear-gradient(to bottom, var(--color-button-bg-top), var(--color-button-bg-bot)) var(--color-button-bg);
+    border-color: var(--color-button-shadow);
+}
+
+/* Notify bar */
+#notify_wrap {
+    background: var(--color-notify-bg);
+    border-color: var(--color-border);
+}
+
+/* .gray utility */
+.gray {
+    background: var(--color-gray-bg);
+}
+
+/* Pages pagination */
+.pages a {
+    color: var(--color-pages-link);
+    background: var(--color-pages-link-bg);
+}
+.pages a:hover {
+    color: var(--color-text);
+    background: var(--color-pages-hover-bg);
+}
+.pages span.current {
+    background: var(--color-pages-current-bg);
+}
+
+/* Comment avatars & borders */
+img.avatar {
+    border-color: var(--color-border);
+}
+img.p100 {
+    border-color: var(--color-border);
+}
+
+/* Comment / toon comments borders */
+.toon_comments .header,
+.toon_comments .form {
+    border-bottom-color: var(--color-border);
+}
+.toon_comments textarea,
+#privmsg_form textarea {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* .sn info block */
+.sn .info-block {
+    background: var(--color-info-block-bg);
+}
+
+/* .sn login / popup */
+.sn .login-wrapper,
+.sn .popup .wrapper {
+    background: var(--color-popup-bg);
+    border-color: var(--color-border);
+}
+.sn .login-wrapper .close,
+.sn .popup .header .close {
+    color: var(--color-popup-close);
+}
+.sn .login-wrapper h2,
+.sn h2 {
+    border-bottom-color: var(--color-border-light);
+}
+.sn h1 {
+    border-bottom-color: var(--color-border-light);
+}
+
+/* .sn inputs */
+.sn input.input,
+.sn .captcha_show {
+    border-color: var(--color-input-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+    box-shadow: 0 0 2px var(--color-input-shadow) inset;
+}
+.sn .captcha_show input {
+    border-top-color: var(--color-input-border);
+    background: var(--color-bg);
+    color: var(--color-text);
+}
+
+/* .sn hints */
+.sn .hint {
+    background: var(--color-hint-bg);
+    border-color: var(--color-hint-border);
+}
+.sn .hint .header .close {
+    color: var(--color-hint-close);
+}
+
+/* Cite links */
+a.cite {
+    color: var(--color-cite);
+}
+a.cite:hover {
+    color: var(--color-cite-hover);
+}
+
+/* reg_variant */
+.reg_variant li {
+    border-color: var(--color-border-light);
+}
+.reg_variant li:hover,
+.reg_variant li.active {
+    background: var(--color-bg);
+}
+.reg_variant li.active {
+    border-color: var(--color-border);
+}
+
+/* levelup comment */
+.levelup_comment {
+    border-color: var(--color-text);
+}
+
+/* toon page links */
+#toon_page h2 a {
+    color: var(--color-muted);
+}
+#toon_page h2 a:hover {
+    color: var(--color-header-link-hover);
+}
+#toon_page ul.continues_list li a {
+    color: var(--color-text);
+}
+#toon_page .info .tags a {
+    color: var(--color-gray-text);
+}
+#toon_page .info .tags a:hover {
+    color: var(--color-text);
+}
+#toon_page .info .buttons a {
+    color: var(--color-muted);
+}
+#toon_page .info .buttons a:hover,
+#toon_page .info .buttons a.active {
+    color: var(--color-text);
+}
+#toon_page .info .prize a {
+    color: var(--color-text);
+}
+
+/* ============================================================
+   DARK MODE TOGGLE BUTTON
+   Drop this anywhere in your header HTML:
+   <button id="theme-toggle" title="Toggle dark/light mode">🌙</button>
+   ============================================================ */
+#theme-toggle {
+    background: var(--color-toggle-bg);
+    border: 1px solid var(--color-border);
+    color: var(--color-toggle-icon);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    transition: background 0.2s, border-color 0.2s;
+}
+#theme-toggle:hover {
+    box-shadow: 0 0 3px var(--color-button-shadow);
+    border-color: var(--color-button-shadow);
+}

@@ -1,0 +1,28 @@
+<div id="authModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(127,127,127,0.5); z-index:1000;">
+  <div class="sn">
+    <div class="login-wrapper">
+      <a class="close" href="#" onclick="closeAuth(); return false;">✕</a>
+      <h2>Sign In</h2>
+      <div class="info-block">
+        Hello! If you were registered before you can sign in with your <a href="#" onclick="toggleOldSignin(); return false;">email and password</a>. Otherwise you can <a href="/register/">sign up</a>.
+      </div>
+      <div id="signin-old" class="signin-old hidden">
+        <label class="short">
+          <p>Email:</p>
+          <input class="input" type="text" id="authEmail">
+        </label>
+        <label class="short">
+          <p>Password:</p>
+          <input class="input" type="password" id="authPassword">
+        </label>
+        <div style="text-align:center; margin-top:10px;">
+          <button class="complete" onclick="submitAuth()">Sign In</button>
+        </div>
+        <div style="text-align:center; margin-top:10px;">
+          <a href="/recover/" style="font:12pt ToonatorFont;">Forgot your password?</a>
+        </div>
+      </div>
+      <div id="authError" style="color:red; margin-top:8px; font:12pt ToonatorFont;"></div>
+    </div>
+  </div>
+</div>

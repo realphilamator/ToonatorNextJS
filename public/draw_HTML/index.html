@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Toonator Rebuild</title>
+
+<link rel="stylesheet" href="/draw_HTML/draw.css">
+
+<style>
+canvas {
+  background:white;
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module" src="/js/config.js"></script>
+<script src="/js/gif.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+</head>
+<body>
+
+<div id="editor">
+
+  <canvas id="canvas" width="600" height="300"></canvas>
+
+  <div id="bottomBar">
+    <div id="timeline">
+      <canvas id="timelineCanvas" width="516" height="24"></canvas>
+    </div>
+    <div id="framesSlider">
+      <div id="scrollPrev"></div>
+      <div id="scrollBar">
+        <div id="scrollSlider"></div>
+      </div>
+      <div id="scrollNext"></div>
+    </div>
+    <div id="toolbar">
+      <div id="btnAdd"></div>
+      <div id="btnDelete"></div>
+      <div id="btnPlay"></div>
+      <div id="btnPause"></div>
+      <div id="btnSave"></div>
+      <div id="btnPencil"></div>
+      <div id="btnEraser"></div>
+      <div id="btnEyedropper"></div>
+      <div id="btnSize1"></div>
+      <div id="btnSize2"></div>
+      <div id="btnSize3"></div>
+      <div id="btnSize4"></div>
+      <div id="btnSize5"></div>
+      <div id="btnColorBlack"><div class="colorInner" style="background:#000000;"></div></div>
+      <div id="btnColorRed"><div class="colorInner" style="background:#ff0000;"></div></div>
+      <div id="btnColorCustom"></div>
+      <input type="color" id="colorPicker" value="#ffffff" disabled style="opacity:0; position:absolute; width:24px; height:24px; left:369.85px; top:62px; cursor:pointer; pointer-events:auto;">
+      <div id="btnSettings"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings overlay + panel -->
+<div id="settingsOverlay">
+  <div id="settingsPanel">
+    <div id="settingsHeader">
+      <span id="settingsTitle">Settings</span>
+      <span id="settingsClose">&#x2715;</span>
+    </div>
+
+    <div class="settingsGroup">
+      <div class="settingsGroupLabel">BRUSH</div>
+      <div class="settingsRow">
+        <span>Oldschool brush<span class="settingsHint">(type "old")</span></span>
+        <input type="checkbox" id="settingOldschool">
+      </div>
+      <div class="settingsRow">
+        <span>Curve smoothing</span>
+        <input type="checkbox" id="settingSmoothing" checked>
+      </div>
+      <div class="settingsRow">
+        <span>Simplify<span class="settingsHint">(0 = off)</span></span>
+        <div class="settingsSliderWrap">
+          <input type="range" id="settingSimplify" min="0" max="20" step="1" value="5">
+          <span class="settingsVal" id="settingSimplifyVal">5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settingsGroup">
+      <div class="settingsGroupLabel">ONION SKIN</div>
+      <div class="settingsRow">
+        <span>Enable onion skin</span>
+        <input type="checkbox" id="settingOnion" checked>
+      </div>
+      <div class="settingsRow">
+        <span>2nd previous frame</span>
+        <input type="checkbox" id="settingOnion2" checked>
+      </div>
+      <div class="settingsRow">
+        <span>Frame -1 opacity</span>
+        <div class="settingsSliderWrap">
+          <input type="range" id="settingAlpha1" min="0" max="100" step="5" value="30">
+          <span class="settingsVal" id="settingAlpha1Val">30%</span>
+        </div>
+      </div>
+      <div class="settingsRow">
+        <span>Frame -2 opacity</span>
+        <div class="settingsSliderWrap">
+          <input type="range" id="settingAlpha2" min="0" max="100" step="5" value="10">
+          <span class="settingsVal" id="settingAlpha2Val">10%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="settingsGroup">
+      <div class="settingsGroupLabel">PLAYBACK</div>
+      <div class="settingsRow">
+        <span>Speed (FPS)</span>
+        <div class="settingsSliderWrap">
+          <input type="range" id="settingFPS" min="1" max="30" step="1" value="10">
+          <span class="settingsVal" id="settingFPSVal">10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save dialog -->
+<div id="saveDialog" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#555555; border-radius:8px; padding:24px 28px; width:340px; font-family:Arial, sans-serif; font-size:13px; color:#fff; position:relative;">
+    <div style="margin-bottom:12px; display:flex; align-items:center;">
+      <label style="width:100px; color:#ddd;">Name:</label>
+      <input id="saveDialogName" type="text" style="flex:1; padding:5px 8px; border:none; border-radius:4px; font-size:13px;" placeholder=""/>
+    </div>
+    <div style="margin-bottom:12px; display:flex; align-items:center;">
+      <label style="width:100px; color:#ddd;">Keywords:</label>
+      <input id="saveDialogKeywords" type="text" style="flex:1; padding:5px 8px; border:none; border-radius:4px; font-size:13px;" placeholder=""/>
+    </div>
+    <div style="margin-bottom:12px; display:flex; align-items:flex-start;">
+      <label style="width:100px; color:#ddd; padding-top:4px;">Description:</label>
+      <textarea id="saveDialogDesc" style="flex:1; height:90px; padding:5px 8px; border:none; border-radius:4px; font-size:13px; resize:none;"></textarea>
+    </div>
+    <div style="margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+      <input type="checkbox" id="saveDialogDraft" style="width:16px; height:16px;"/>
+      <label for="saveDialogDraft" style="color:#ddd;">Draft</label>
+    </div>
+    <div style="text-align:center; margin-bottom:8px;">
+      <span id="saveStatus" style="font-size:11px; color:#ffcc88;"></span>
+    </div>
+    <!-- Local save / load row -->
+    <div style="display:flex; justify-content:center; gap:8px; margin-bottom:10px;">
+      <button id="saveLocalBtn" style="background:#444; color:#fff; border:none; border-radius:4px; padding:7px 16px; font-size:12px; cursor:pointer;">&#11015; save local</button>
+      <button id="loadLocalBtn" style="background:#444; color:#fff; border:none; border-radius:4px; padding:7px 16px; font-size:12px; cursor:pointer;">&#11014; load local</button>
+    </div>
+    <!-- Supabase save / cancel row -->
+    <div style="display:flex; justify-content:center; gap:12px;">
+      <button id="saveCancel" style="background:#444; color:#fff; border:none; border-radius:4px; padding:7px 24px; font-size:13px; cursor:pointer;">cancel</button>
+      <button id="saveFinal" style="background:#333; color:#fff; border:none; border-radius:4px; padding:7px 24px; font-size:13px; cursor:pointer;">save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/draw_HTML/app.js"></script>
+<script src="/js/save.js"></script>
+
+</body>
+</html>

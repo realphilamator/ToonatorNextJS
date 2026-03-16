@@ -1,0 +1,90 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="none" x="0px" y="0px" width="24px" height="24px" viewBox="0 0 24 24">
+<defs>
+<g id="Symbol_24_0_Layer4_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 456 223
+Q 431 55 410 9
+L 63 4 53 0 36 0 10 2
+Q 0 5 0 20 0 130 9 221 21 338 26 475
+L 38 477 65 480 168 472 182 463 207 453
+Q 214 451 324 452
+L 443 453
+Q 464 450 474 435
+L 480 421
+Q 480 376 456 223
+M 414 381
+L 414 394.95
+Q 413.96875 394.03125 412 396
+L 176 414 149 424 65 432 65 430 56 240 48 56 390 59 402 207 414 381 Z"/>
+</g>
+
+<g id="Symbol_24_0_Layer3_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 346 80
+Q 336 23 325 23
+L 310 26 305 29 305 118 311 131 313 145 238 158 195 163
+Q 182 163 177 136
+L 175 93 175 56 163 14
+Q 144 27 138 48
+L 134 89 136 153
+Q 146 213 187 213
+L 240 206 325 195
+Q 347 185 352 166
+L 354 139 346 80 Z"/>
+</g>
+
+<g id="Symbol_24_0_Layer2_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 354 273
+L 354 275 353 356
+Q 356 402 382 434
+L 393 430 401 427 403 362
+Q 403 194 236 236 180 251 121 285 69 315 69 325
+L 85 400
+Q 107 479 130 479
+L 144 477 146 470 151 457 125 388
+Q 110 350 110 328 204 317 241 298 275 280 354 273 Z"/>
+</g>
+
+<g id="Symbol_24_0_Layer1_0_FILL">
+<path fill="#000000" stroke="none" d="
+M 240 75
+Q 207 58 207 94
+L 219 130
+Q 233 166 244 177 266 167 271 148
+L 273 121
+Q 273 91 240 75 Z"/>
+</g>
+
+<g id="Symbol_24_0_Layer0_0_FILL">
+<path fill="#666633" fill-opacity="0" stroke="none" d="
+M 480 480
+L 480 0 0 0 0 480 480 480 Z"/>
+</g>
+</defs>
+
+<g id="btnSave" transform="matrix( 1, 0, 0, 1, 0,0) ">
+<g transform="matrix( 0.04998779296875, 0, 0, 0.04998779296875, 0,0) ">
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_24_0_Layer4_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_24_0_Layer3_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_24_0_Layer2_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_24_0_Layer1_0_FILL"/>
+</g>
+
+<g transform="matrix( 1, 0, 0, 1, 0,0) ">
+<use xlink:href="#Symbol_24_0_Layer0_0_FILL"/>
+</g>
+</g>
+</g>
+</svg>

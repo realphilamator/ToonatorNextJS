@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Toonator Banner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #777;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  #banner {
+    width: 350px;
+    height: 350px;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  /* White background */
+  #bg {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+  }
+  /* Animation canvas — full banner size, coords are native from AS */
+  #c {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 350px;
+    height: 350px;
+  }
+  /* The PNG overlay on top of everything */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    width: 350px;
+    height: 350px;
+    pointer-events: none;
+  }
+  /* Cursor on top of overlay */
+  #cursorEl {
+    position: absolute;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+<div id="banner">
+  <div id="bg"></div>
+  <canvas id="c" width="350" height="350"></canvas>
+  <img id="overlay" src="banneren.png" alt="">
+  <img id="cursorEl" src="cursor.png" alt="">
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const cursorEl = document.getElementById('cursorEl');
+const banner = document.getElementById('banner');
+
+banner.addEventListener('click', () => {
+  window.open('http://toonator.com/draw/', '_blank');
+});
+
+// 3 frames of stroke coordinate data from the original ActionScript
+const frames = [
+  [
+    [113,46,102,45,91,45,83,51,76,61,75,71,75,83,81,93,88,101,98,106,110,106,122,106,132,101,140,93,144,82,144,71,142,61,134,53,124,49,114,45],
+    [105,108,105,119,105,130,106,140,108,150,108,161,108,171],
+    [105,171,93,168,83,165,73,162,67,170,67,182,68,192,69,202],
+    [107,171,118,170,130,167,141,165,151,163,156,174,156,184,157,195,160,205],
+    [106,117,116,117,128,117,138,117,148,117,155,125,161,133,167,142],
+    [104,118,95,113,84,108,74,103,64,99,59,108,55,118,52,128]
+  ],
+  [
+    [110,44,98,44,88,44,80,50,73,58,69,69,69,80,73,91,81,99,91,104,102,106,113,106,123,106,132,99,138,90,141,80,141,70,140,60,134,52,125,46,115,44],
+    [105,107,105,117,105,127,105,137,105,147,105,157,108,167],
+    [106,116,115,121,125,125,135,129,144,134,148,124,153,115],
+    [103,117,93,116,82,116,72,117,63,122,63,132,64,142],
+    [108,168,116,160,126,155,135,150,144,157,150,166,156,175],
+    [106,167,95,168,84,170,74,170,69,179,66,189,64,199,62,209]
+  ],
+  [
+    [108,44,98,44,88,46,78,50,72,58,69,68,68,78,71,88,79,96,90,100,100,102,110,102,121,102,131,97,138,89,142,79,142,69,142,58,136,48,127,43,117,41,107,41],
+    [103,100,105,110,107,120,107,130,106,140,106,150,106,160],
+    [106,159,107,169],
+    [107,169,117,169,127,171,138,172,149,173,144,182,138,190,133,199,127,207],
+    [103,166,93,163,83,160,73,157,63,156,69,165,75,175,79,185,82,195],
+    [106,117,97,123,91,131,86,140,78,133,71,124,62,117],
+    [105,116,115,114,126,110,136,106,146,103,155,110,161,120,166,130]
+  ]
+];
+
+// Offscreen canvas per frame for compositing
+const offscreens = frames.map(() => {
+  const oc = document.createElement('canvas');
+  oc.width = 350; oc.height = 350;
+  return oc;
+});
+
+let phase = 0;
+let cframe = 0, cline = 0, cpoint = 0;
+let cx = 100, cy = 100;
+let targetX = 175, targetY = 125;
+let movingTo = false;
+let onArrival = null;
+let fadeAlphas = [1, 1, 1];
+let pendingShade = false;
+let flipFrame = 0, flipIteration = 0;
+
+function setCursor(x, y) {
+  cursorEl.style.transform = `translate(${x}px,${y}px)`;
+}
+
+function moveCursorTo(x, y, cb) {
+  targetX = x; targetY = y;
+  movingTo = true;
+  onArrival = cb;
+}
+
+function redraw() {
+  ctx.clearRect(0, 0, 350, 350);
+  if (phase === 0) {
+    for (let f = 0; f < frames.length; f++) {
+      if (f < cframe) {
+        ctx.globalAlpha = fadeAlphas[f];
+        ctx.drawImage(offscreens[f], 0, 0);
+      } else if (f === cframe) {
+        ctx.globalAlpha = 1;
+        ctx.drawImage(offscreens[f], 0, 0);
+      }
+    }
+    ctx.globalAlpha = 1;
+  } else if (phase === 1) {
+    ctx.globalAlpha = 1;
+    ctx.drawImage(offscreens[flipFrame], 0, 0);
+  }
+}
+
+function tick() {
+  if (movingTo) {
+    const dx = targetX - cx, dy = targetY - cy;
+    if (Math.abs(dx) <= 10 && Math.abs(dy) <= 10) {
+      cx = targetX; cy = targetY;
+      movingTo = false;
+      // Apply shade after cursor arrives - matches original AS caction==1
+      if (pendingShade) {
+        for (let f = 0; f < cframe; f++) {
+          const behind = cframe - f;
+          if (behind === 1) fadeAlphas[f] = 0.3;
+          else if (behind === 2) fadeAlphas[f] = 0.1;
+          else fadeAlphas[f] = 0;
+        }
+        pendingShade = false;
+      }
+      const cb = onArrival; onArrival = null;
+      setCursor(cx, cy);
+      redraw();
+      if (cb) cb();
+    } else {
+      cx += Math.max(-30, Math.min(30, dx / 2));
+      cy += Math.max(-30, Math.min(30, dy / 2));
+      setCursor(cx, cy);
+      redraw();
+    }
+    return;
+  }
+
+  if (phase === 0) {
+    if (cframe >= frames.length) {
+      phase = 1; flipFrame = 0; flipIteration = 0;
+      moveCursorTo(5, 295, null);
+      return;
+    }
+    const stroke = frames[cframe];
+    if (cpoint === 0) {
+      // AS: moveToPoint = new Point(x - 16, y - 16)
+      moveCursorTo(stroke[cline][0] - 16, stroke[cline][1] - 16, () => {
+        const octx = offscreens[cframe].getContext('2d');
+        octx.strokeStyle = '#000';
+        octx.lineWidth = 3;
+        octx.lineCap = 'round';
+        octx.lineJoin = 'round';
+        octx.beginPath();
+        octx.moveTo(stroke[cline][0], stroke[cline][1]);
+        cpoint = 2;
+      });
+      return;
+    }
+    const x = stroke[cline][cpoint], y = stroke[cline][cpoint + 1];
+    const octx = offscreens[cframe].getContext('2d');
+    octx.lineTo(x, y);
+    octx.stroke();
+    octx.beginPath();
+    octx.moveTo(x, y);
+    // AS: cursorPointer.x = x - 16, cursorPointer.y = y - 16
+    cx = x - 16; cy = y - 16;
+    setCursor(cx, cy);
+    redraw();
+    cpoint += 2;
+    if (cpoint >= stroke[cline].length) {
+      cline++;
+      cpoint = 0;
+      if (cline >= stroke.length) {
+        cline = 0;
+        cframe++;
+        pendingShade = true;
+        // AS: moveToPoint = new Point(10, 260)
+        moveCursorTo(10, 260, null);
+      }
+    }
+  } else if (phase === 1) {
+    if (flipIteration % 3 === 0) {
+      flipFrame = (flipFrame + 1) % 3;
+      redraw();
+    }
+    flipIteration++;
+    if (flipIteration >= 100) phase = 2;
+  } else if (phase === 2) {
+    offscreens.forEach(oc => oc.getContext('2d').clearRect(0, 0, 350, 350));
+    fadeAlphas = [1, 1, 1];
+    pendingShade = false;
+    cframe = 0; cline = 0; cpoint = 0;
+    flipFrame = 0; flipIteration = 0;
+    cx = 100; cy = 100;
+    ctx.clearRect(0, 0, 350, 350);
+    phase = 0;
+  }
+}
+
+setCursor(cx, cy);
+setInterval(tick, 50);
+</script>
+</body>
+</html>
