@@ -5,10 +5,13 @@ export default function middleware(request: NextRequest) {
   const host = request.headers.get('host') || ''
 
   if (host === 'multator.site' || host === 'www.multator.site') {
-    const url = new URL(request.url)
-    url.host = 'toonator.site'
-    url.protocol = 'https:'
-    const response = NextResponse.redirect(url, 301)
+    const url = request.nextUrl.clone()
+    const pathname = url.pathname
+    const search = url.search
+    const response = NextResponse.redirect(
+      `https://toonator.site${pathname}${search}`,
+      301
+    )
     response.cookies.set('locale', 'ru', {
       path: '/',
       sameSite: 'lax',
