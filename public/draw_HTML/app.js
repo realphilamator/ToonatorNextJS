@@ -968,7 +968,6 @@ function setActiveTool(btnId) {
 }
 
 document.getElementById("btnPencil").addEventListener("click", () => {
-  color = "#000";
   eraserMode = false;
   eyedropperActive = false;
   oldschoolMode = false;
@@ -1099,9 +1098,10 @@ document.addEventListener("keydown",(e)=>{
     case "n":
       newFrame(e.ctrlKey || e.metaKey);
       break;
-
+      
     case "b":
       eraserMode = false;
+      eyedropperActive = false;
       setActiveTool('btnPencil');
       updateCursor();
       break;
