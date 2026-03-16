@@ -17,7 +17,7 @@ export default async function RootLayout({ children }) {
         <link rel="stylesheet" href="/css/font.css" />
         <link rel="stylesheet" href={locale === 'ru' ? '/css/images_ru.css' : '/css/images.css'} />
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-        <script src="/js/config.js" type="module" defer></script>
+        <script src="/js/config.js"defer></script>
         <script src="/js/auth.js" defer></script>
       </head>
       <body>
