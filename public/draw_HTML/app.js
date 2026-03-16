@@ -94,9 +94,9 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (!playing) {
-    if (settings.onionSkin && lastViewedFrame >= 0 && lastViewedFrame !== currentFrame) {
-      if (settings.onionSkin2 && lastViewedFrame > 0) {
-        const twoBack = frames[lastViewedFrame - 1];
+    if (settings.onionSkin && currentFrame > 0) {
+      if (settings.onionSkin2 && currentFrame > 1) {
+        const twoBack = frames[currentFrame - 2];
         if (twoBack) {
           ctx.globalAlpha = settings.onionAlpha2;
           drawFrameStrokes(ctx, twoBack.strokes);
@@ -104,7 +104,7 @@ function render() {
       }
 
       ctx.globalAlpha = settings.onionAlpha1;
-      drawFrameStrokes(ctx, frames[lastViewedFrame].strokes);
+      drawFrameStrokes(ctx, frames[currentFrame - 1].strokes);
     }
   }
 
@@ -1055,13 +1055,18 @@ document.addEventListener("keydown",(e)=>{
   if (keybindsDisabled) return;
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+  // Ignore key repeat to prevent double undo/redo
+  if (e.repeat) return;
+
   switch(e.key.toLowerCase()){
 
     case "z":
+      e.preventDefault();
       undoStroke();
       break;
 
     case "y":
+      e.preventDefault();
       redoStroke();
       break;
 
@@ -1094,6 +1099,18 @@ document.addEventListener("keydown",(e)=>{
 
     case "n":
       newFrame(e.ctrlKey || e.metaKey);
+      break;
+
+    case "b":
+      eraserMode = false;
+      setActiveTool('btnPencil');
+      updateCursor();
+      break;
+
+    case "e":
+      eraserMode = true;
+      setActiveTool('btnEraser');
+      updateCursor();
       break;
 
   }
