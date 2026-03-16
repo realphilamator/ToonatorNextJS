@@ -3,6 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 
+if (typeof window !== "undefined" && !window.pako) {
+  const script = document.createElement("script");
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
+  document.head.appendChild(script);
+}
+
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -132,6 +138,8 @@ function SearchUser({ currentUserRole, showStatus }) {
     setComments(data || []);
   }
 
+
+  
   async function banUser(userId, username) {
     if (currentUserRole !== "admin") { showStatus("Only admins can ban users.", false); return; }
     if (!confirm(`Ban ${username} and delete ALL their toons and comments? This cannot be undone.`)) return;
@@ -763,6 +771,67 @@ export default function ModPanel() {
       </Section>
     );
   }
+
+function FixFrameCounts({ showStatus }) {
+  const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState("");
+
+  async function run() {
+    if (!confirm("This will fetch and decompress all animations with 0 frames to fix their counts. Continue?")) return;
+    setRunning(true);
+    setProgress("Fetching animations...");
+
+    let fixed = 0, failed = 0, page = 0;
+    const pageSize = 50;
+
+    while (true) {
+      const { data, error } = await db
+        .from("animations")
+        .select("id, frames_compressed")
+        .eq("frame_count", 0)
+        .not("frames_compressed", "is", null)
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (error || !data || data.length === 0) break;
+
+      for (const anim of data) {
+        try {
+          const binary = atob(anim.frames_compressed);
+          const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+          const json = pako.ungzip(bytes, { to: "string" });
+          const frames = JSON.parse(json);
+          const count = Array.isArray(frames) ? frames.length : 0;
+          if (count > 0) {
+            await db.from("animations").update({ frame_count: count }).eq("id", anim.id);
+            fixed++;
+          }
+        } catch {
+          failed++;
+        }
+        setProgress(`Fixed: ${fixed}, Failed: ${failed}...`);
+      }
+
+      if (data.length < pageSize) break;
+      page++;
+    }
+
+    setProgress(`Done! Fixed: ${fixed}, Failed: ${failed}`);
+    setRunning(false);
+    showStatus(`Frame count fix complete. Fixed: ${fixed}, Failed: ${failed}`);
+  }
+
+  return (
+    <Section title="🔧 Fix Frame Counts">
+      <div className="mp-empty" style={{ marginBottom: 8 }}>
+        Fixes frame_count = 0 for all animations that have compressed frames saved.
+      </div>
+      <div className="mp-row">
+        <button onClick={run} disabled={running}>{running ? "Running..." : "Run Fix"}</button>
+        {progress && <span className="grayb small">{progress}</span>}
+      </div>
+    </Section>
+  );
+}
 
   return (
     <div id="content_wrap">

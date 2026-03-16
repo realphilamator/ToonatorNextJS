@@ -1,4 +1,3 @@
-// API — mirrors /js/api.js exactly, adapted for Next.js imports
 import { db, SUPABASE_URL, SUPABASE_ANON_KEY } from "./config";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
