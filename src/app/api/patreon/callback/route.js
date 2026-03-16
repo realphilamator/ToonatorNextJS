@@ -7,7 +7,7 @@ export async function GET(request) {
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://toonator.site';
 
   if (error || !code || !state) {
     return NextResponse.redirect(`${siteUrl}/profile?patreon=error`);
