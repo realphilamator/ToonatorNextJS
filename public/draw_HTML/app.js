@@ -1216,7 +1216,7 @@ async function loadContinue() {
 
   const { data, error } = await db
     .from('animations')
-    .select('id, title, frames, description, keywords, is_draft')
+    .select('id, title, frames, frames_compressed, description, keywords, is_draft')
     .eq('id', continueId)
     .single();
 
@@ -1225,10 +1225,19 @@ async function loadContinue() {
     return;
   }
 
-  frames = Array.isArray(data.frames)
-    ? data.frames
-    : (data.frames ? Object.values(data.frames) : [{ strokes: [] }]);
+  // Support both compressed (new) and uncompressed (legacy) frames
+  let loadedFrames;
+  if (data.frames_compressed) {
+    loadedFrames = decompressFrames(data.frames_compressed);
+  } else if (Array.isArray(data.frames)) {
+    loadedFrames = data.frames;
+  } else if (data.frames) {
+    loadedFrames = Object.values(data.frames);
+  } else {
+    loadedFrames = [{ strokes: [] }];
+  }
 
+  frames = loadedFrames;
   frameThumbs = [];
   undoHistory = frames.map(() => []);
   redoHistory = frames.map(() => []);
@@ -1237,6 +1246,7 @@ async function loadContinue() {
   currentFrame = 0;
   previousFrame = -1;
   lastViewedFrame = -1;
+  secondLastViewedFrame = -1;
 
   updateSliderMax();
   render();
