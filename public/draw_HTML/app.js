@@ -42,6 +42,7 @@ let frames = [{ strokes: [] }];
 let currentFrame = 0;
 let previousFrame = -1;
 let lastViewedFrame = -1;
+let secondLastViewedFrame = -1;
 
 let currentStroke = null;
 
@@ -94,17 +95,13 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (!playing) {
-    if (settings.onionSkin && currentFrame > 0) {
-      if (settings.onionSkin2 && currentFrame > 1) {
-        const twoBack = frames[currentFrame - 2];
-        if (twoBack) {
-          ctx.globalAlpha = settings.onionAlpha2;
-          drawFrameStrokes(ctx, twoBack.strokes);
-        }
+    if (settings.onionSkin && lastViewedFrame >= 0 && lastViewedFrame !== currentFrame) {
+      if (settings.onionSkin2 && secondLastViewedFrame >= 0 && secondLastViewedFrame !== currentFrame) {
+        ctx.globalAlpha = settings.onionAlpha2;
+        drawFrameStrokes(ctx, frames[secondLastViewedFrame].strokes);
       }
-
       ctx.globalAlpha = settings.onionAlpha1;
-      drawFrameStrokes(ctx, frames[currentFrame - 1].strokes);
+      drawFrameStrokes(ctx, frames[lastViewedFrame].strokes);
     }
   }
 
@@ -482,6 +479,7 @@ function updateCursor() {
 canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
   stopIfPlaying();
+  saveUndoSnapshot();
   drawing = true;
   currentStroke = {
     size: brushSize,
@@ -526,7 +524,6 @@ function finaliseStroke() {
     currentStroke.polygon = buildOldschoolPolygon(currentStroke.points, currentStroke.size / 2);
   }
 
-  saveUndoSnapshot();
   updateThumbnail(currentFrame);
   drawFramesTimeline();
   render();
@@ -572,6 +569,7 @@ function nextFrame(){
 
   if(currentFrame<frames.length-1){
 
+    secondLastViewedFrame = lastViewedFrame;
     lastViewedFrame = currentFrame;
     previousFrame=currentFrame;
     currentFrame++;
@@ -587,6 +585,7 @@ function prevFrame(){
 
   if(currentFrame>0){
 
+    secondLastViewedFrame = lastViewedFrame;
     lastViewedFrame = currentFrame;
     previousFrame=currentFrame;
     currentFrame--;

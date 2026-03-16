@@ -63,7 +63,7 @@ export default function SpoodersPurchasePage() {
 
   const paymentMethods = [
     { id: "ko-fi",   label: "Ko-fi",   cls: "pay-icon-kofi",    href: KOFI_URL,                  external: true  },
-    { id: "patreon", label: "Patreon", cls: "pay-icon-patreon", href: "/spooders/buy/patreon/",  external: false },
+    { id: "patreon", label: "Patreon", cls: "pay-icon-patreon", href: "https://www.patreon.com/ToonatorRevival/join",  external: true },
     { id: "boosty",  label: "Boosty",  cls: "pay-icon-boosty",  href: BOOSTY_URL,                external: true  },
   ];
 

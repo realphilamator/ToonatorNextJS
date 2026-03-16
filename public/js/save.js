@@ -254,7 +254,6 @@ async function saveAnimation() {
   const keywords    = document.getElementById('saveDialogKeywords').value.trim().slice(0, 200);
   const description = document.getElementById('saveDialogDesc').value.trim().slice(0, 1000);
   const isDraft     = document.getElementById('saveDialogDraft').checked;
-  const framesCompressed = compressFrames(frames);
 
   const status = document.getElementById('saveStatus');
   const btn    = document.getElementById('saveFinal');
