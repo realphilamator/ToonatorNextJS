@@ -125,7 +125,8 @@ function AcquireForm({ minBid, onSuccess }) {
     return <span>{t('onlyRegistered')}</span>;
   }
 
-  const isDisabled = loading || cooldown > 0 || !toonUrl;
+  const inputsDisabled = loading || cooldown > 0;
+  const submitDisabled = inputsDisabled || !toonUrl;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -175,7 +176,7 @@ function AcquireForm({ minBid, onSuccess }) {
             placeholder={t('toonUrlPlaceholder')}
             value={toonUrl}
             onChange={(e) => setToonUrl(e.target.value)}
-            disabled={isDisabled}
+            disabled={inputsDisabled}
           />
         </div>
         <div className="p" style={{ width: '755px' }}>
@@ -187,14 +188,14 @@ function AcquireForm({ minBid, onSuccess }) {
             min={minBid}
             value={bidAmount}
             onChange={(e) => setBidAmount(Number(e.target.value))}
-            disabled={isDisabled}
+            disabled={inputsDisabled}
           />
         </div>
         <div className="ps" style={{ width: '755px' }}>
           <button
             id="reg_buy"
             onClick={handleSubmit}
-            disabled={isDisabled}
+            disabled={submitDisabled}
           >
             {cooldown > 0 ? `${t('acquireButton')} (${cooldown}s)` : t('acquireButton')}
           </button>

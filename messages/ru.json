@@ -110,7 +110,7 @@
   },
   "static": {
     "oldschool": "Олдскул",
-    "staticLabel": "Цветные",
+    "staticLabel": "1",
     "sandbox": "Песочница",
     "noToons": "Мультов пока нет.",
     "goodPlace": "Козырное место",
@@ -119,7 +119,7 @@
   },
   "sandbox": {
     "oldschool": "Олдскул",
-    "staticLabel": "Цветные",
+    "staticLabel": "1",
     "sandbox": "Песочница",
     "noToons": "Мультов пока нет.",
     "goodPlace": "Козырное место",
@@ -271,7 +271,7 @@
   },
   "last": {
     "oldschool": "Олдскул",
-    "static": "Цветные",
+    "static": "1",
     "sandbox": "Песочница",
     "noToons": "Мультов пока нет.",
     "goodPlace": "Козырное место",
