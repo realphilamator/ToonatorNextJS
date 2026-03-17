@@ -1,11 +1,8 @@
 const cache = {};
-
 export async function colorUsernames() {
   const els = document.querySelectorAll('a.username:not([data-colored])');
   if (!els.length) return;
-
   els.forEach(el => el.setAttribute('data-colored', '1'));
-
   const usernames = [...new Set(
     [...els]
       .map(el => {
@@ -14,7 +11,6 @@ export async function colorUsernames() {
       })
       .filter(Boolean)
   )];
-
   await Promise.all(usernames.map(async (uname) => {
     try {
       if (cache[uname] === undefined) {
@@ -30,16 +26,24 @@ export async function colorUsernames() {
         const data = await res.json();
         cache[uname] = {
           russian: data?.[0]?.russian || false,
-          role: data?.[0]?.role || 'user'
+          role: data?.[0]?.role || 'user',
+          alphaTester: data?.[0]?.alpha_tester || false,
         };
       }
-
-      const { russian, role } = cache[uname];
+      const { russian, role, alphaTester } = cache[uname];
       document.querySelectorAll(`a.username[href="/user/${encodeURIComponent(uname)}"]`).forEach(el => {
         if (role === 'admin')       el.classList.add('admin');
         else if (role === 'mod')    el.classList.add('mod');
         else if (russian)           el.classList.add('russian');
         else                        el.classList.add('foreign');
+
+        if (alphaTester && !el.querySelector('.alpha-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'alpha-badge';
+          badge.textContent = 'α';
+          badge.style.cssText = 'font-size:0.65em; opacity:0.75; margin-left:3px; vertical-align:super;';
+          el.appendChild(badge);
+        }
       });
     } catch {
       document.querySelectorAll(`a.username[href="/user/${encodeURIComponent(uname)}"]`).forEach(el => {
