@@ -26,9 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function compressFrames(framesArray) {
   const json = JSON.stringify(framesArray);
-  const compressed = pako.gzip(json);           // Uint8Array
-  // Base64-encode for JSON/DB storage
-  return btoa(String.fromCharCode(...compressed));
+  const compressed = pako.gzip(json);
+  let binaryStr = '';
+  const CHUNK = 0x8000; // 32 KB per chunk
+  for (let i = 0; i < compressed.length; i += CHUNK) {
+    binaryStr += String.fromCharCode.apply(undefined, compressed.subarray(i, i + CHUNK));
+  }
+  return btoa(binaryStr);
 }
 
 function decompressFrames(base64str) {
