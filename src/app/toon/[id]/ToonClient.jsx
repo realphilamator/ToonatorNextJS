@@ -194,8 +194,31 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
   const [postingComment, setPostingComment] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [frames, setFrames] = useState([]);
+  const [framesLoading, setFramesLoading] = useState(!isLegacy);
 
-  const frames = resolveFrames(toon);
+  // Fetch frame data directly from Supabase on the client to avoid
+  // bloating the RSC payload (which causes 413 on large toons).
+  useEffect(() => {
+    if (isLegacy) return;
+    let cancelled = false;
+    const table = "animations";
+    db.from(table)
+      .select("frames,frames_compressed")
+      .eq("id", toonId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) { setFramesLoading(false); return; }
+        setFrames(resolveFrames(data));
+        setFramesLoading(false);
+      })
+      .catch((err) => {
+        console.error("[ToonClient] Failed to fetch frames:", err);
+        if (!cancelled) setFramesLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [toonId, isLegacy]);
+
   const toonSettings = toon.settings || {};
 
   const previewUrl = isLegacy

@@ -66,6 +66,10 @@ export default async function ToonPage({ params }) {
   const { data: toon } = await db.from(table).select("*").eq("id", id).maybeSingle();
   if (!toon) notFound();
 
+  // Strip heavy frame data from server props to avoid bloating the RSC payload
+  // (causes 413 errors on large toons). The client will fetch frames directly.
+  const { frames, frames_compressed, ...toonMeta } = toon;
+
   const [author, continuedFrom, comments, likeCount] = await Promise.all([
     getAuthorData(toon.user_id),
     getContinuedFrom(toon.continued_from, legacy),
@@ -84,7 +88,7 @@ export default async function ToonPage({ params }) {
   return (
     <ToonClient
       toonId={id}
-      toon={toon}
+      toon={toonMeta}
       author={author}
       continuedFrom={continuedFrom}
       initialComments={comments}
