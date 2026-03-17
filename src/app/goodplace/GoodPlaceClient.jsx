@@ -105,22 +105,30 @@ function CurrentToonCard({ toon, username }) {
 function AcquireForm({ minBid, onSuccess }) {
   const t = useTranslations('goodPlace');
   const { user, spiders } = useAuth();
-  const [toonUrl, setToonUrl]   = useState('');
+  const [toonUrl, setToonUrl]     = useState('');
   const [bidAmount, setBidAmount] = useState(minBid);
-  const [formInfo, setFormInfo] = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [formInfo, setFormInfo]   = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [cooldown, setCooldown]   = useState(0);
 
   useEffect(() => {
     setBidAmount((prev) => Math.max(prev, minBid));
   }, [minBid]);
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
   if (!user) {
     return <span>{t('onlyRegistered')}</span>;
   }
 
+  const isDisabled = loading || cooldown > 0 || !toonUrl;
+
   async function handleSubmit(e) {
     e.preventDefault();
-    setFormInfo({ ok: true, msg: '...' });
 
     const parsed = parseToonInput(toonUrl);
     if (!parsed) {
@@ -135,12 +143,14 @@ function AcquireForm({ minBid, onSuccess }) {
     }
 
     setLoading(true);
+    setFormInfo({ ok: true, msg: '...' });
     const result = await buyGoodPlace(toonId, isLegacy, bidAmount);
     setLoading(false);
 
     if (result.success) {
       setFormInfo({ ok: true, msg: result.message });
       setToonUrl('');
+      setCooldown(10);
       onSuccess(result);
     } else {
       setFormInfo({ ok: false, msg: result.message });
@@ -165,7 +175,7 @@ function AcquireForm({ minBid, onSuccess }) {
             placeholder={t('toonUrlPlaceholder')}
             value={toonUrl}
             onChange={(e) => setToonUrl(e.target.value)}
-            disabled={loading}
+            disabled={isDisabled}
           />
         </div>
         <div className="p" style={{ width: '755px' }}>
@@ -177,16 +187,16 @@ function AcquireForm({ minBid, onSuccess }) {
             min={minBid}
             value={bidAmount}
             onChange={(e) => setBidAmount(Number(e.target.value))}
-            disabled={loading}
+            disabled={isDisabled}
           />
         </div>
         <div className="ps" style={{ width: '755px' }}>
           <button
             id="reg_buy"
             onClick={handleSubmit}
-            disabled={loading || !toonUrl}
+            disabled={isDisabled}
           >
-            {t('acquireButton')}
+            {cooldown > 0 ? `${t('acquireButton')} (${cooldown}s)` : t('acquireButton')}
           </button>
         </div>
         {formInfo && (
