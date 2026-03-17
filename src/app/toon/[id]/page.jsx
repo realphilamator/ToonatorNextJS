@@ -63,12 +63,14 @@ export default async function ToonPage({ params }) {
   const legacy = isLegacyId(id);
   const table = legacy ? "legacy_animations" : "animations";
 
-  const { data: toon } = await db.from(table).select("*").eq("id", id).maybeSingle();
+  // For modern toons, only select metadata columns — frames are fetched
+  // client-side to avoid bloating the RSC payload (413 on large toons).
+  // Legacy toons use select("*") since they don't store heavy frame blobs.
+  const { data: toon } = await db.from(table)
+    .select(legacy ? "*" : "id,title,description,keywords,settings,created_at,user_id,continued_from,likes")
+    .eq("id", id)
+    .maybeSingle();
   if (!toon) notFound();
-
-  // Strip heavy frame data from server props to avoid bloating the RSC payload
-  // (causes 413 errors on large toons). The client will fetch frames directly.
-  const { frames, frames_compressed, ...toonMeta } = toon;
 
   const [author, continuedFrom, comments, likeCount] = await Promise.all([
     getAuthorData(toon.user_id),
@@ -88,7 +90,7 @@ export default async function ToonPage({ params }) {
   return (
     <ToonClient
       toonId={id}
-      toon={toonMeta}
+      toon={toon}
       author={author}
       continuedFrom={continuedFrom}
       initialComments={comments}

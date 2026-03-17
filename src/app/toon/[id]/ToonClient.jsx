@@ -161,6 +161,34 @@ function LegacyPlayer({ toonId }) {
   return <div ref={containerRef} style={{ width: "610px", height: "350px" }} />;
 }
 
+// ─── Player Loading Placeholder ───────────────────────────────────────────────
+function PlayerLoading() {
+  return (
+    <div style={{
+      width: 610, height: 350, background: "#fff", position: "relative",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      border: "2px solid #000", boxSizing: "border-box",
+    }}>
+      <style>{`
+        @keyframes toon-spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: 36, height: 36, margin: "0 auto 10px",
+          border: "3px solid #eee", borderTop: "3px solid #000",
+          borderRadius: "50%", animation: "toon-spin 0.8s linear infinite",
+        }} />
+        <div style={{ fontFamily: "Arial", fontSize: "11pt", color: "#888" }}>
+          Loading toon…
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Comment ─────────────────────────────────────────────────────────────────
 function Comment({ comment }) {
   const username = comment.author_username || "anonymous";
@@ -195,27 +223,51 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
   const [currentUser, setCurrentUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [frames, setFrames] = useState([]);
-  const [framesLoading, setFramesLoading] = useState(!isLegacy);
+  const [playerReady, setPlayerReady] = useState(isLegacy);
 
-  // Fetch frame data directly from Supabase on the client to avoid
-  // bloating the RSC payload (which causes 413 on large toons).
+  // Fetch frames from Supabase AND preload toon-player.js in parallel.
+  // Only mark ready when BOTH the script and frame data are available,
+  // so the loading spinner stays visible until the player can render immediately.
   useEffect(() => {
     if (isLegacy) return;
     let cancelled = false;
-    const table = "animations";
-    db.from(table)
+
+    // 1. Ensure toon-player.js script is loaded
+    const scriptReady = new Promise((resolve) => {
+      if (window.initToonPlayer) { resolve(); return; }
+      const existing = document.querySelector('script[src="/js/toon-player.js"]');
+      if (existing) {
+        existing.addEventListener("load", resolve, { once: true });
+        if (window.initToonPlayer) resolve();
+      } else {
+        const script = document.createElement("script");
+        script.src = "/js/toon-player.js";
+        script.onload = resolve;
+        document.head.appendChild(script);
+      }
+    });
+
+    // 2. Fetch frame data from Supabase
+    const framesReady = db.from("animations")
       .select("frames,frames_compressed")
       .eq("id", toonId)
       .maybeSingle()
       .then(({ data }) => {
-        if (cancelled || !data) { setFramesLoading(false); return; }
-        setFrames(resolveFrames(data));
-        setFramesLoading(false);
+        if (cancelled || !data) return [];
+        return resolveFrames(data);
       })
       .catch((err) => {
         console.error("[ToonClient] Failed to fetch frames:", err);
-        if (!cancelled) setFramesLoading(false);
+        return [];
       });
+
+    // 3. Wait for both, then update state once
+    Promise.all([scriptReady, framesReady]).then(([, resolvedFrames]) => {
+      if (cancelled) return;
+      setFrames(resolvedFrames);
+      setPlayerReady(true);
+    });
+
     return () => { cancelled = true; };
   }, [toonId, isLegacy]);
 
@@ -325,7 +377,9 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
             <div className="player" id="player_container">
               {isLegacy
                 ? <LegacyPlayer toonId={toonId} />
-                : <ToonPlayer frames={frames} settings={toonSettings} />
+                : !playerReady
+                  ? <PlayerLoading />
+                  : <ToonPlayer frames={frames} settings={toonSettings} />
               }
             </div>
 
