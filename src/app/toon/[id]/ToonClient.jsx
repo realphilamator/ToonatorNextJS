@@ -6,6 +6,8 @@ import { ungzip } from "pako";
 import { useTranslations } from 'next-intl';
 import UsernameLink from "@/components/UsernameLink";
 import UserAvatar from "@/components/UserAvatar";
+import ToonLinkPreview from "@/components/ToonLinkPreview";
+import { extractMentions } from "@/lib/mentions";
 
 // ─── Toonator Banner (shown in sidebar when logged out) ───────────────────────
 function ToonBanner() {
@@ -189,8 +191,35 @@ function PlayerLoading() {
   );
 }
 
+// ─── Render @mention tokens as UsernameLink components ───────────────────────
+// Splits text on @username patterns and returns an inline React fragment.
+// Non-mention parts are plain inline <span>s to avoid block-level line breaks
+// that would occur if ToonLinkPreview wraps content in a div/p element.
+// ToonLinkPreview is still used as a fallback when there are no mentions,
+// preserving toon-link detection for plain comments.
+function CommentText({ text }) {
+  if (!text) return null;
+  const parts = text.split(/(@[a-zA-Z0-9_]{3,20})/g);
+  // If there are no mentions, fall back to ToonLinkPreview normally
+  const hasMention = parts.some(p => /^@[a-zA-Z0-9_]{3,20}$/.test(p));
+  if (!hasMention) return <ToonLinkPreview text={text} />;
+  return (
+    <>
+      {parts.map((part, i) => {
+        const mention = part.match(/^@([a-zA-Z0-9_]{3,20})$/);
+        if (mention) {
+          // Bold inline UsernameLink — no block wrapper
+          return <strong key={i}><UsernameLink username={mention[1]} /></strong>;
+        }
+        // Plain text segment — must stay inline, no block wrappers
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 // ─── Comment ─────────────────────────────────────────────────────────────────
-function Comment({ comment }) {
+function Comment({ comment, onReply }) {
   const username = comment.author_username || "anonymous";
   const dateStr = formatDate(comment.created_at);
   return (
@@ -202,11 +231,83 @@ function Comment({ comment }) {
       </div>
       <div className="head">
         <UsernameLink username={username} />
+        {/* ── @ reply button ── */}
+        <button
+          onClick={() => onReply(username)}
+          title={`Reply to ${username}`}
+          style={{
+            background: "none",
+            border: "none",
+            padding: "0 3px",
+            margin: "0 2px",
+            cursor: "pointer",
+            color: "#aaa",
+            fontSize: "11pt",
+            fontFamily: "Arial",
+            lineHeight: 1,
+            verticalAlign: "middle",
+          }}
+          aria-label={`Mention ${username}`}
+        >
+          @
+        </button>
         <span className="date"><b>{dateStr}</b></span>
       </div>
-      <div className="text">{comment.text}</div>
+      <div className="text">
+        <CommentText text={comment.text} />
+      </div>
     </div>
   );
+}
+
+// ─── Resolve @mentions → user_ids and fire notifications (client-side) ───────
+async function fireMentionNotifications({ fromUsername, selfUserId, text, type, toonId, commentId }) {
+  const usernames = extractMentions(text);
+  if (!usernames.length) return;
+
+  const typeLabel = {
+    mention_comment:          "mentioned you in a comment",
+    mention_toon_title:       "mentioned you in a toon title",
+    mention_toon_description: "mentioned you in a toon description",
+  }[type] ?? "mentioned you";
+
+  // Resolve each username → user_id via profiles table
+  const rows = [];
+  await Promise.all(
+    usernames.map(async (username) => {
+      // Try get_user_by_username RPC first, fall back to profiles table
+      let userId = null;
+      try {
+        const { data } = await db.rpc("get_user_by_username", { p_username: username });
+        if (data && data.length > 0) userId = data[0].id;
+      } catch (_) {}
+      if (!userId) {
+        const { data: profile } = await db
+          .from("profiles")
+          .select("id")
+          .eq("username", username)
+          .maybeSingle();
+        userId = profile?.id ?? null;
+      }
+      if (userId && userId !== selfUserId) {
+        rows.push({
+          user_id:       userId,
+          from_username: fromUsername,
+          type,
+          amount:        0,
+          reason:        type,
+          toon_id:       toonId ?? null,
+          comment_id:    commentId ?? null,
+          message:       `${fromUsername} ${typeLabel}.`,
+          is_read:       false,
+        });
+      }
+    })
+  );
+
+  if (rows.length) {
+    await db.from("notifications").insert(rows);
+  }
 }
 
 // ─── Main Client Component ────────────────────────────────────────────────────
@@ -225,14 +326,13 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
   const [frames, setFrames] = useState([]);
   const [playerReady, setPlayerReady] = useState(isLegacy);
 
+  const commentTextareaRef = useRef(null);
+
   // Fetch frames from Supabase AND preload toon-player.js in parallel.
-  // Only mark ready when BOTH the script and frame data are available,
-  // so the loading spinner stays visible until the player can render immediately.
   useEffect(() => {
     if (isLegacy) return;
     let cancelled = false;
 
-    // 1. Ensure toon-player.js script is loaded
     const scriptReady = new Promise((resolve) => {
       if (window.initToonPlayer) { resolve(); return; }
       const existing = document.querySelector('script[src="/js/toon-player.js"]');
@@ -247,7 +347,6 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
       }
     });
 
-    // 2. Fetch frame data from Supabase
     const framesReady = db.from("animations")
       .select("frames,frames_compressed")
       .eq("id", toonId)
@@ -261,7 +360,6 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
         return [];
       });
 
-    // 3. Wait for both, then update state once
     Promise.all([scriptReady, framesReady]).then(([, resolvedFrames]) => {
       if (cancelled) return;
       setFrames(resolvedFrames);
@@ -309,7 +407,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
       const { error } = await db.from("likes").insert(
         { [col]: toonId, user_id: currentUser.id }
       );
-      if (error && error.code !== '23505') { // 23505 = unique violation, already liked
+      if (error && error.code !== '23505') {
         console.error("Like error:", error);
         return;
       }
@@ -317,14 +415,36 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
       await db.from(table).update({ likes: (t?.likes || 0) + 1 }).eq("id", toonId);
       setLiked(true);
       setLikeCount(c => c + 1);
-    }}
+    }
+  }
 
   async function handleAddComment(e) {
     e.preventDefault();
-    console.log("clicked", { authLoading, currentUser });
     if (authLoading) return;
     if (!currentUser) { window.showAuth?.("login"); return; }
     setShowCommentForm(true);
+    // Focus textarea after it appears
+    setTimeout(() => commentTextareaRef.current?.focus(), 50);
+  }
+
+  // ── Called when user clicks @ next to someone's username ──
+  function handleReply(username) {
+    if (!currentUser) { window.showAuth?.("login"); return; }
+    const prefix = `@${username}, `;
+    setCommentText(prev => {
+      // If already starts with this mention, don't duplicate
+      if (prev.startsWith(prefix)) return prev;
+      return prefix + prev;
+    });
+    setShowCommentForm(true);
+    setTimeout(() => {
+      const ta = commentTextareaRef.current;
+      if (ta) {
+        ta.focus();
+        // Move cursor to end
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+    }, 50);
   }
 
   async function postComment(e) {
@@ -354,6 +474,16 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
       setPostingComment(false);
       return;
     }
+
+    // ── Fire mention notifications (non-blocking) ──
+    fireMentionNotifications({
+      fromUsername: username,
+      selfUserId:   currentUser.id,
+      text,
+      type:         "mention_comment",
+      toonId,
+      commentId:    data.id,
+    }).catch(err => console.warn("[mentions] notification error:", err));
 
     setComments(prev => [{ ...data }, ...prev]);
     setCommentText("");
@@ -402,6 +532,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
                 <div id="comments_form" style={{ display: "block", visibility: "visible", zIndex: 9999 }}>
                   <div className="form2">
                     <textarea
+                      ref={commentTextareaRef}
                       id="comment_text"
                       rows={3}
                       placeholder={tp('writeComment')}
@@ -434,7 +565,13 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
               <div id="comments_list">
                 {comments.length === 0
                   ? <p style={{ color: "#888888", fontSize: "10pt", padding: "10px" }}>{tp('noComments')}</p>
-                  : comments.map(c => <Comment key={c.id} comment={c} />)
+                  : comments.map(c => (
+                      <Comment
+                        key={c.id}
+                        comment={c}
+                        onReply={handleReply}
+                      />
+                    ))
                 }
               </div>
             </div>
@@ -458,7 +595,13 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
 
             <div className="prizes" />
             <div className="buttons">
-              <div className="toonmedals" />
+              {currentUser && author.username !== (currentUser.user_metadata?.username || currentUser.email) && (
+                <div className="toonmedals">
+                  <a href="#" className="hover" onClick={e => { e.preventDefault(); alert('Coming Soon'); }}>
+                    <img src="/img/1.gif" className="img_toonmedal" /><span>{tp('medals')}</span>
+                  </a>
+                </div>
+              )}
               <div className="like hover">
                 <a href="#" onClick={handleLike} className={`hover${liked ? " active" : ""}`} id="like_link">
                   <img src="/img/1.gif" className="img_like" />
@@ -476,13 +619,32 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
                   <img src="/img/1.gif" className="img_pencil" /><span>{tp('continue')}</span>
                 </a>
               </div>
+
+              {currentUser && author.username === (currentUser.user_metadata?.username || currentUser.email) && (
+                <div className="sound">
+                  <a href="#" className="hover" onClick={e => { e.preventDefault(); alert('Coming Soon'); }}>
+                    <img src="/img/1.gif" className="img_microphone" /><span>{tp('sound')}</span>
+                  </a>
+                </div>
+              )}
+
+              {currentUser && author.username === (currentUser.user_metadata?.username || currentUser.email) && (
+                <div className="more">
+                  <a href="#" className="hover" onClick={e => { e.preventDefault(); alert('More options coming soon!'); }}>
+                    <img src="/img/1.gif" className="img_more" /><span>{tp('more')}</span>
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="line_7"><img src="/img/1.gif" /></div>
 
             {description && (
               <div className="description" id="description_div">
-                <span id="description_text">{description}</span>
+                {/* Render @mentions in description as clickable links */}
+                <span id="description_text">
+                  <CommentText text={description} />
+                </span>
               </div>
             )}
 

@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import UsernameLink from '@/components/UsernameLink';
-import styles from './settings.module.css';
 import UserAvatar from "@/components/UserAvatar";
-
-
+import { db } from '@/lib/config';
 
 const PALETTE = [
   "#000000","#0a0000","#140000","#1e0000","#280000","#320000","#3c0000","#460000",
@@ -80,7 +78,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function load() {
-      const db = window.db;
       if (!db) return;
       const { data: { user } } = await db.auth.getUser();
       if (!user) { window.location.href = '/'; return; }
@@ -100,7 +97,6 @@ export default function SettingsPage() {
       if (avatarToon) setAvatarSrc(`${SUPABASE_URL}/storage/v1/object/public/previews/${avatarToon}_100.gif`);
       setNickIconUrl(profileData?.nick_icon ?? null);
 
-      // Load promotion request stats fresh from the DB
       await loadPromoStats(db, user.id);
 
       setLoading(false);
@@ -112,7 +108,6 @@ export default function SettingsPage() {
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-    // Count requests this month
     const { count } = await db
       .from('promotion_requests')
       .select('id', { count: 'exact', head: true })
@@ -121,7 +116,6 @@ export default function SettingsPage() {
 
     setPromoUsed(count ?? 0);
 
-    // Get the most recent request for display
     const { data: recentList } = await db
       .from('promotion_requests')
       .select('submitted_at, status')
@@ -139,27 +133,30 @@ export default function SettingsPage() {
   async function handleSubmit() {
     setSaving(true);
     setSettingsMsg(null);
-    const db = window.db;
     try {
       const updateData = {
-        birth_date: birthDate, show_birthdate: showBirthdate,
-        hide_rank: hideRank, alt_rank: altRank || null,
+        birth_date: birthDate, 
+        show_birthdate: showBirthdate,
+        hide_rank: hideRank, 
+        alt_rank: altRank || null,
       };
       if (canPickColor) {
         updateData.nick_color = selectedColor;
       }
-      const { error } = await db.auth.updateUser({ data: updateData });
+      const { error: authError } = await db.auth.updateUser({ data: updateData });
       const { data: { user } } = await db.auth.getUser();
 
-      // ✅ include nick_color in the profiles update
-      const profileUpdate = { kofi_username: kofiUsername || null };
+      const profileUpdate = { 
+        kofi_username: kofiUsername || null,
+        nick_icon: nickIconUrl,
+      };
       if (canPickColor) {
         profileUpdate.nick_color = selectedColor;
       }
-      await db.from('profiles').update(profileUpdate).eq('id', user.id);
+      const { error: profileError } = await db.from('profiles').update(profileUpdate).eq('id', user.id);
 
-      if (error) {
-        setSettingsMsg({ type: 'err', text: t('errorSaving', { error: error.message }) });
+      if (authError || profileError) {
+        setSettingsMsg({ type: 'err', text: t('errorSaving', { error: (authError || profileError).message }) });
       } else {
         delete colorCache[username];
         setSettingsMsg({ type: 'ok', text: t('savedOk') });
@@ -193,7 +190,6 @@ export default function SettingsPage() {
     setPromotionMsg(null);
 
     try {
-      const db = window.db;
       const { data: { session } } = await db.auth.getSession();
       if (!session?.access_token) throw new Error('Not logged in');
 
@@ -215,7 +211,6 @@ export default function SettingsPage() {
       setPromotionMsg({ type: 'ok', text: t('promotion.successMsg') });
       setPromotionText('');
 
-      // Refresh stats from DB so counts update immediately
       const { data: { user } } = await db.auth.getUser();
       await loadPromoStats(db, user.id);
     } catch (err) {
@@ -233,7 +228,6 @@ export default function SettingsPage() {
     setNickIconUploading(true);
     setNickIconMsg(null);
     try {
-      const db = window.db;
       const { data: { session } } = await db.auth.getSession();
       const form = new FormData();
       form.append('file', file);
@@ -244,7 +238,7 @@ export default function SettingsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Upload failed');
-      // Bust both caches so sidebar UsernameLink re-fetches immediately
+
       delete colorCache[username];
       if (window.__nickIconCache) delete window.__nickIconCache[username];
       setNickIconUrl(json.url);
@@ -262,7 +256,6 @@ export default function SettingsPage() {
     setNickIconUploading(true);
     setNickIconMsg(null);
     try {
-      const db = window.db;
       const { data: { session } } = await db.auth.getSession();
       const res = await fetch(EDGE_FN, {
         method: 'DELETE',
@@ -285,31 +278,27 @@ export default function SettingsPage() {
   const rank = meta?.rank || profile?.rank || 'archeologist';
   const rankDef = RANKS[rank] || RANKS['archeologist'];
 
-  // Prefer profile (DB) status over metadata; normalize to lowercase
   const statusRaw = (profile?.status || meta?.status || 'ordinary').toLowerCase();
   const statusLabel = STATUS_LABELS[statusRaw] ?? statusRaw;
 
-  // Nick color is a cowboy/monarch perk
   const canPickColor = statusRaw === 'cowboy' || statusRaw === 'monarch';
 
-  // Legacy: keep isBoyar for alt-rank feature (monarch is the successor)
   const isBoyar = statusRaw === 'monarch';
 
-  // Patreon perk — username icon
   const isPatreon = profile?.patreon_status === 'active';
 
   const remaining = 2 - promoUsed;
   const submitDisabled = submittingPromo || promoUsed >= 2 || hasPending;
 
-  if (loading) return <div className={styles.loading}>{t('loading')}</div>;
+  if (loading) return <div className="loading">{t('loading')}</div>;
 
   return (
     <div id="content_wrap">
       <div id="content">
-        <div className={`userprofile ${styles.wrap}`}>
+        <div className={`userprofile wrap`}>
 
           {/* SIDEBAR */}
-          <div className={`content_right ${styles.sidebar}`}>
+          <div className={`content_right sidebar`}>
             <div className="center">
               <h3 id="profile_username_wrap">
                 <UsernameLink username={username} />
@@ -324,31 +313,30 @@ export default function SettingsPage() {
                     />
               </div>
             </div>
-            <nav className={styles.settingsNav}>
+            <nav className="settingsNav">
               <ul className="leftmenu">
                 <li><a href={`/user/${username}`}>{t('nav.myPage')}</a></li>
                 <li><a href="/profile" className="selected">{t('nav.settings')}</a></li>
-                <li><a href="/change-password">{t('nav.changePassword')}</a></li>
-                <li><a href="/social-networks">{t('nav.socialNetworks')}</a></li>
-                <li><a href="/blacklist">{t('nav.blacklist')}</a></li>
+                <li><a href="/profile/change-password">{t('nav.changePassword')}</a></li>
+                <li><a href="/profile/blacklist">{t('nav.blacklist')}</a></li>
               </ul>
             </nav>
           </div>
 
           {/* MAIN PANEL */}
-          <div className={`content_left ${styles.panel}`}>
-            <h1 className={styles.pageTitle}>{t('pageTitle')}</h1>
+          <div className={`content_left panel`}>
+            <h1 className="pageTitle">{t('pageTitle')}</h1>
             {settingsMsg && (
-              <div className={`${styles.msg} ${styles[settingsMsg.type]}`}>{settingsMsg.text}</div>
+              <div className={`msg ${settingsMsg.type}`}>{settingsMsg.text}</div>
             )}
 
             {/* ABOUT ME */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>{t('aboutMe.title')}</h2>
-              <hr className={styles.divider} />
-              <div className={styles.field}>
-                <span className={styles.label}>{t('aboutMe.birthDate')}</span>
-                <input type="text" className={styles.birthInput} placeholder="DD.MM.YYYY"
+            <section className="section">
+              <h2 className="sectionTitle">{t('aboutMe.title')}</h2>
+              <hr className="divider" />
+              <div className="field">
+                <span className="label">{t('aboutMe.birthDate')}</span>
+                <input type="text" className="birthInput" placeholder="DD.MM.YYYY"
                   value={birthDate} onChange={e => setBirthDate(e.target.value)} />
                 <select value={showBirthdate} onChange={e => setShowBirthdate(e.target.value)}>
                   <option value="show">{t('aboutMe.showBirthdate')}</option>
@@ -359,10 +347,10 @@ export default function SettingsPage() {
             </section>
 
             {/* RANK AND STATUS */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>{t('rankStatus.title')}</h2>
-              <hr className={styles.divider} />
-              <div className={styles.rankField}>
+            <section className="section">
+              <h2 className="sectionTitle">{t('rankStatus.title')}</h2>
+              <hr className="divider" />
+              <div className="rankField">
                 <span>{t('rankStatus.rankLabel')}</span>
                 <select disabled value={rank}>
                   {Object.entries(RANKS).map(([key, r]) => (
@@ -372,7 +360,7 @@ export default function SettingsPage() {
                 <a href="/wiki/ranks" target="_blank">{t('rankStatus.moreAboutRanks')}</a>
               </div>
               {isBoyar && (
-                <div className={styles.rankField}>
+                <div className="rankField">
                   <span>{t('rankStatus.displayAs')}</span>
                   <select value={altRank} onChange={e => setAltRank(e.target.value)}>
                     <option value="">{rankDef.label} {t('rankStatus.default')}</option>
@@ -380,32 +368,32 @@ export default function SettingsPage() {
                       <option key={alt} value={alt}>{alt}</option>
                     ))}
                   </select>
-                  <span className={styles.altRankNote}>{t('rankStatus.monarchNote')}</span>
+                  <span className="altRankNote">{t('rankStatus.monarchNote')}</span>
                 </div>
               )}
-              <div className={styles.checkbox}>
+              <div className="checkbox">
                 <input type="checkbox" id="hide_rank"
                   checked={hideRank} onChange={e => setHideRank(e.target.checked)} />
                 <label htmlFor="hide_rank">{t('rankStatus.hideRank')}</label>
               </div>
-              <div className={styles.statusLine}>
-                {t('rankStatus.statusLabel')}{' '}<span className={styles.statusName}>{statusLabel}</span>.{' '}
+              <div className="statusLine">
+                {t('rankStatus.statusLabel')}{' '}<span className="statusName">{statusLabel}</span>.{' '}
                 <a href="/wiki/statuses" target="_blank">{t('rankStatus.moreAboutStatus')}</a>
               </div>
               {meta?.status_free_date && (
-                <div className={styles.statusFreeLine}>{meta.status_free_date}</div>
+                <div className="statusFreeLine">{meta.status_free_date}</div>
               )}
             </section>
 
             {/* RANK PROMOTION */}
             {rankDef.canApply && (
-              <section className={styles.section}>
-                <h2 className={styles.sectionTitle}>{t('promotion.title')}</h2>
-                <hr className={styles.divider} />
-                <div className={styles.promotionInfo}>
+              <section className="section">
+                <h2 className="sectionTitle">{t('promotion.title')}</h2>
+                <hr className="divider" />
+                <div className="promotionInfo">
                   {t.rich('promotion.info', { rank: rankDef.label, desc: rankDef.desc, b: (c) => <strong>{c}</strong> })}
                 </div>
-                <div className={styles.promotionCooldown}>
+                <div className="promotionCooldown">
                   {hasPending ? (
                     <span style={{ color: '#e6a817' }}>
                       {t('promotion.pending')}
@@ -417,21 +405,21 @@ export default function SettingsPage() {
                   )}
                 </div>
                 <textarea
-                  className={styles.promotionTextarea}
+                  className="promotionTextarea"
                   placeholder={t('promotion.placeholder')}
                   value={promotionText}
                   onChange={e => setPromotionText(e.target.value)}
                   disabled={submitDisabled}
                 />
                 <button
-                  className={styles.promotionBtn}
+                  className="promotionBtn"
                   onClick={handlePromotion}
                   disabled={submitDisabled}
                 >
                   {submittingPromo ? t('promotion.sending') : t('promotion.sendButton')}
                 </button>
                 {promotionMsg && (
-                  <div className={`${styles.msg} ${styles[promotionMsg.type]} ${styles.promoMsg}`}>
+                  <div className={`msg ${promotionMsg.type} promoMsg`}>
                     {promotionMsg.text}
                   </div>
                 )}
@@ -439,22 +427,22 @@ export default function SettingsPage() {
             )}
 
             {/* NICK COLOR — cowboy and monarch only */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>{t('nickColor.title')}</h2>
-              <hr className={styles.divider} />
+            <section className="section">
+              <h2 className="sectionTitle">{t('nickColor.title')}</h2>
+              <hr className="divider" />
               {canPickColor ? (
                 <>
-                  <div className={styles.nickNote}>
+                  <div className="nickNote">
                     {t('nickColor.cooldownNote')}
                   </div>
-                  <div className={styles.nickPreview}>
+                  <div className="nickPreview">
                     <span style={{ color: selectedColor }}>{username}</span>
                   </div>
-                  <div className={styles.palette}>
-                    <div className={styles.paletteGrid}>
+                  <div className="palette">
+                    <div className="paletteGrid">
                       {PALETTE.map((color, i) => (
                         <button key={`${color}-${i}`}
-                          className={`${styles.swatch} ${selectedColor === color ? styles.selected : ''}`}
+                          className={`swatch ${selectedColor === color ? 'selected' : ''}`}
                           style={{ backgroundColor: color }}
                           title={color}
                           onClick={() => setSelectedColor(color)}
@@ -464,24 +452,24 @@ export default function SettingsPage() {
                   </div>
                 </>
               ) : (
-                <div className={styles.nickNote}>
+                <div className="nickNote">
                   {t('nickColor.notAllowed')}
                 </div>
               )}
             </section>
 
             {/* USERNAME ICON — Patreon supporters only */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>{t('usernameIcon.title')}</h2>
-              <hr className={styles.divider} />
+            <section className="section">
+              <h2 className="sectionTitle">{t('usernameIcon.title')}</h2>
+              <hr className="divider" />
               {isPatreon ? (
                 <>
-                  <div className={styles.nickNote}>
+                  <div className="nickNote">
                     {t('usernameIcon.patreonNote')}
                   </div>
-                  <div className={styles.field}>
+                  <div className="field">
                     {nickIconUrl ? (
-                      <div className={styles.nickPreview}>
+                      <div className="nickPreview">
                         <span
                           className="username withicon"
                           style={{ background: `url(${nickIconUrl}) no-repeat`, backgroundSize: '16px' }}
@@ -490,10 +478,10 @@ export default function SettingsPage() {
                         </span>
                       </div>
                     ) : (
-                      <div className={styles.nickNote}>{t('usernameIcon.noIcon')}</div>
+                      <div className="nickNote">{t('usernameIcon.noIcon')}</div>
                     )}
                   </div>
-                  <div className={styles.field}>
+                  <div className="field">
                     <input
                       id="nick_icon_upload"
                       type="file"
@@ -519,13 +507,13 @@ export default function SettingsPage() {
                     )}
                   </div>
                   {nickIconMsg && (
-                    <div className={`${styles.msg} ${styles[nickIconMsg.type]}`}>
+                    <div className={`msg ${nickIconMsg.type}`}>
                       {nickIconMsg.text}
                     </div>
                   )}
                 </>
               ) : (
-                <div className={styles.nickNote}>
+                <div className="nickNote">
                   {t('usernameIcon.notPatreon')}{' '}
                   {profile?.patreon_user_id ? (
                     // Connected but pledge is inactive / wrong tier
@@ -544,7 +532,6 @@ export default function SettingsPage() {
                     <>
                       <button
                         onClick={async () => {
-                          const db = window.db;
                           const { data: { session } } = await db.auth.getSession();
                           if (!session?.access_token) { window.openAuth?.(); return; }
                           const returnUrl = encodeURIComponent('https://www.patreon.com/ToonatorRevival/join');
@@ -561,20 +548,19 @@ export default function SettingsPage() {
             </section>
 
             {/* SPOODERS & PATREON */}
-            <section className={styles.section}>
-              <h2 className={styles.sectionTitle}>{t('spoodersPatreon.title')}</h2>
-              <hr className={styles.divider} />
-              <div className={styles.nickNote}>
+            <section className="section">
+              <h2 className="sectionTitle">{t('spoodersPatreon.title')}</h2>
+              <hr className="divider" />
+              <div className="nickNote">
                 {t.rich('spoodersPatreon.note', { count: profile?.spiders ?? 0, b: (c) => <strong>{c}</strong> })}
               </div>
-              <div className={styles.field}>
+              <div className="field">
                 {profile?.patreon_user_id ? (
                   <>
                     <span style={{ color: 'green' }}>{t('spoodersPatreon.connected')}</span>
                     <button
                       style={{ marginLeft: 12 }}
                       onClick={async () => {
-                        const db = window.db;
                         const { data: { user } } = await db.auth.getUser();
                         await db.from('profiles').update({ patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }).eq('id', user.id);
                         setProfile(p => ({ ...p, patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }));
@@ -585,7 +571,6 @@ export default function SettingsPage() {
                   </>
                 ) : (
                   <button className="complete" onClick={async () => {
-                    const db = window.db;
                     const { data: { session } } = await db.auth.getSession();
                     if (!session?.access_token) { window.openAuth?.(); return; }
                     window.location.href = `/api/patreon/connect?token=${session.access_token}`;
@@ -597,7 +582,7 @@ export default function SettingsPage() {
             </section>
 
             {/* SUBMIT */}
-            <div className={styles.submitRow}>
+            <div className="submitRow">
               <button onClick={handleSubmit} disabled={saving}>
                 {saving ? t('saving') : t('submit')}
               </button>

@@ -14,23 +14,27 @@ export default function ToonCard({
   currentUserId = null,
   inAlbum,
   onAlbumToggle,
+  commentCount: commentCountProp,
 }) {
   const t = useTranslations("toonCard");
-  const [commentCount, setCommentCount] = useState(null);
+  const [commentCountFetched, setCommentCountFetched] = useState(null);
   const [continuedFromInfo, setContinuedFromInfo] = useState(null);
   const [albumToggling, setAlbumToggling] = useState(false);
+
+  const commentCount = commentCountProp ?? commentCountFetched;
 
   const isLegacy = !UUID_RE.test(toon.id);
   const toonHref = toon.is_draft ? `/draft/${toon.id}` : `/toon/${toon.id}`;
 
   // ── Comment count ────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (commentCountProp != null) return;
     const column = isLegacy ? "legacy_animation_id" : "animation_id";
     db.from("comments")
       .select("*", { count: "exact", head: true })
       .eq(column, toon.id)
-      .then(({ count }) => setCommentCount(count || 0));
-  }, [toon.id, isLegacy]);
+      .then(({ count }) => setCommentCountFetched(count || 0));
+  }, [toon.id, isLegacy, commentCountProp]);
 
   // ── Fetch continued_from info ────────────────────────────────────────────────
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function ToonCard({
     setAlbumToggling(false);
   }
 
-  const frameCount = toon.frame_count ?? 0;
+  const frameCount = toon.frame_count ?? toon.frames ?? 0;
   const title = toon.title || t("untitled");
 
   // ── ◎ continuation link ──────────────────────────────────────────────────────

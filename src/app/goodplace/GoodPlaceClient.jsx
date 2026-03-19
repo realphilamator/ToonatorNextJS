@@ -67,7 +67,8 @@ function CurrentToonCard({ toon, username }) {
   const t = useTranslations('goodPlace');
 
   if (!toon) return null;
-  const framesBold = toon.frames > 99;
+  const frameCount = toon.frame_count ?? 0;
+  const framesBold = frameCount > 99;
 
   return (
     <div className="toon_preview large" style={{ float: 'left', marginRight: '10px' }}>
@@ -86,9 +87,7 @@ function CurrentToonCard({ toon, username }) {
           : <a className="username anonymous">%ANONYMOUS%</a>
         }
         {', '}
-        {framesBold ? <b>{toon.frames}</b> : toon.frames}
-        {' '}
-        {t('frames', { count: toon.frames })}
+        {t('frames', { count: frameCount })}
       </div>
       <div className="toon_tagline">
         {toon.comment_count > 0

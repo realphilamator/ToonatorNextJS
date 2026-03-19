@@ -13,9 +13,17 @@ function closeSaveDialog() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('saveDialogName').maxLength = 100;
+  document.getElementById('saveDialogName').maxLength = 30;
   document.getElementById('saveDialogKeywords').maxLength = 200;
   document.getElementById('saveDialogDesc').maxLength = 1000;
+
+  const nameInput = document.getElementById('saveDialogName');
+  const nameCount = document.getElementById('saveDialogNameCount');
+  nameInput.addEventListener('input', () => {
+    const len = nameInput.value.length;
+    nameCount.textContent = `${len} / 30`;
+    nameCount.style.color = len >= 28 ? '#ff9966' : 'rgba(255,255,255,0.4)';
+  });
 
   document.getElementById('btnSave').addEventListener('click', openSaveDialog);
   document.getElementById('saveCancel').addEventListener('click', closeSaveDialog);
@@ -26,13 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function compressFrames(framesArray) {
   const json = JSON.stringify(framesArray);
-  const compressed = pako.gzip(json);
-  let binaryStr = '';
-  const CHUNK = 0x8000; // 32 KB per chunk
-  for (let i = 0; i < compressed.length; i += CHUNK) {
-    binaryStr += String.fromCharCode.apply(undefined, compressed.subarray(i, i + CHUNK));
-  }
-  return btoa(binaryStr);
+  const compressed = pako.gzip(json);           // Uint8Array
+  // Base64-encode for JSON/DB storage
+  return btoa(String.fromCharCode(...compressed));
 }
 
 function decompressFrames(base64str) {
@@ -121,6 +125,7 @@ function loadLocal() {
       currentFrame = 0;
       previousFrame = -1;
       lastViewedFrame = -1;
+      onionHistory = [];
 
       updateSliderMax();
       render();
@@ -186,7 +191,9 @@ function renderFrameToCanvas(frame, width, height) {
 
     cx.beginPath();
     cx.strokeStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color;
-    cx.lineWidth = Math.max(1, stroke.size * scaleX);
+    // Allow sub-pixel stroke width for small canvases to maintain proportions
+    const minStrokeWidth = (width <= 40) ? 0.3 : 1;
+    cx.lineWidth = Math.max(minStrokeWidth, stroke.size * scaleX);
     cx.lineCap = 'round';
     cx.lineJoin = 'round';
 
@@ -250,11 +257,57 @@ function generateGif(width, height) {
 }
 
 /* =====================================================
+   MENTION NOTIFICATIONS
+   Extracts @username tokens from text and inserts a
+   notification row for each mentioned user.
+   Uses the existing get_user_by_username RPC.
+===================================================== */
+
+function extractMentions(text) {
+  if (!text) return [];
+  const seen = new Set();
+  for (const m of text.matchAll(/@([a-zA-Z0-9_]{3,20})/g)) seen.add(m[1]);
+  return [...seen];
+}
+
+async function fireMentionNotifications({ fromUsername, selfUserId, text, type, toonId }) {
+  const usernames = extractMentions(text);
+  if (!usernames.length) return;
+
+  const typeLabel = {
+    mention_toon_title:       'mentioned you in a toon title',
+    mention_toon_description: 'mentioned you in a toon description',
+  }[type] ?? 'mentioned you';
+
+  const rows = [];
+  await Promise.all(usernames.map(async (username) => {
+    const { data } = await db.rpc('get_user_by_username', { p_username: username });
+    const userId = data?.[0]?.id ?? null;
+    if (!userId || userId === selfUserId) return;
+    rows.push({
+      user_id:       userId,
+      from_username: fromUsername,
+      type,
+      amount:        0,
+      reason:        type,
+      toon_id:       toonId,
+      message:       `${fromUsername} ${typeLabel}.`,
+      is_read:       false,
+    });
+  }));
+
+  if (rows.length) {
+    const { error } = await db.from('notifications').insert(rows);
+    if (error) console.warn('[mentions] notification insert error:', error.message);
+  }
+}
+
+/* =====================================================
    SAVE ANIMATION  —  compresses frames before DB insert
 ===================================================== */
 
 async function saveAnimation() {
-  const title       = (document.getElementById('saveDialogName').value.trim() || 'Untitled').slice(0, 100);
+  const title       = (document.getElementById('saveDialogName').value.trim() || 'Untitled').slice(0, 30);
   const keywords    = document.getElementById('saveDialogKeywords').value.trim().slice(0, 200);
   const description = document.getElementById('saveDialogDesc').value.trim().slice(0, 1000);
   const isDraft     = document.getElementById('saveDialogDraft').checked;
@@ -268,6 +321,8 @@ async function saveAnimation() {
   try {
     const { data: { user }, error: userError } = await db.auth.getUser();
     if (userError || !user) throw new Error('You must be logged in to save.');
+
+    const username = user.user_metadata?.username || user.email;
 
     const savedSettings = {
       playFPS:           settings.playFPS,
@@ -284,8 +339,7 @@ async function saveAnimation() {
       keywords,
       description,
       is_draft:           isDraft,
-      frames_compressed:  framesCompressed,
-      frame_count:        frames.length,   // ← add this line
+      frames_compressed:  framesCompressed,   // NEW compressed column
       settings:           savedSettings,
     };
 
@@ -300,6 +354,13 @@ async function saveAnimation() {
       .single();
 
     if (insertError) throw insertError;
+
+    // ── Fire @mention notifications for title and description (non-blocking) ──
+    const mentionOpts = { fromUsername: username, selfUserId: user.id, toonId: anim.id };
+    Promise.all([
+      fireMentionNotifications({ ...mentionOpts, text: title,       type: 'mention_toon_title' }),
+      fireMentionNotifications({ ...mentionOpts, text: description, type: 'mention_toon_description' }),
+    ]).catch(err => console.warn('[mentions] error:', err));
 
     status.textContent = 'Generating previews...';
 
@@ -323,7 +384,7 @@ async function saveAnimation() {
     ]);
 
     status.textContent = 'Saved!';
-    setTimeout(() => { closeSaveDialog(); window.location.href = `/toon/${anim.id}`; }, 800);
+    setTimeout(() => { closeSaveDialog(); window.top.location.href = `/toon/${anim.id}`; }, 800);
 
   } catch (err) {
     console.error('[save] ERROR:', err);

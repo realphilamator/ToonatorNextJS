@@ -4,6 +4,8 @@ import { getTranslations } from 'next-intl/server';
 import ToonCard from "@/components/ToonCard";
 import { UrlPaginator } from "@/components/paginator";
 import { SUPABASE_URL } from "@/lib/config";
+import ToonLinkPreview from "@/components/ToonLinkPreview";
+import UsernameLink from "@/components/UsernameLink";
 import { resolveUsernames, getFeaturedToon, getLastComments, getPopularWeek } from "@/lib/api";
 
 export async function generateMetadata() {
@@ -133,11 +135,9 @@ export async function PopularSidebar({ featuredToon, featuredUsername, lastComme
                 </Link>
               </div>
               <div className="head">
-                <Link href={`/user/${encodeURIComponent(uname)}`} className="username">
-                  {uname}
-                </Link>
+                <UsernameLink username={uname} />
                 {": "}
-                {comment.text || ""}
+                <ToonLinkPreview text={comment.text || ""} />
               </div>
             </div>
           );

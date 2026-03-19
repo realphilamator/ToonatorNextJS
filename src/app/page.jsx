@@ -113,7 +113,7 @@ export default async function HomePage() {
               </div>
               <div className="toon_tagline">
                 <UsernameLink username={goodPlace.author?.username || "unknown"} />,{" "}
-                {t('frames', { count: goodPlace.toon.frames })}
+                {t('frames', { count: goodPlace.toon.frame_count })}
               </div>
               {goodPlace.toon.comment_count > 0 && (
                 <div className="toon_tagline">

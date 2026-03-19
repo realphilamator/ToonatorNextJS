@@ -276,7 +276,25 @@ async function waitForDb(maxWait = 5000) {
   return window.db;
 }
 
+let previousAuthState = null;
+
 document.addEventListener("DOMContentLoaded", async () => {
   await waitForDb();
   updateAuthUI();
+
+  // Set initial auth state
+  const { data: { user } } = await db.auth.getUser();
+  previousAuthState = user ? 'authenticated' : 'unauthenticated';
+
+  db.auth.onAuthStateChange(async (_event, session) => {
+    const currentAuthState = session?.user ? 'authenticated' : 'unauthenticated';
+    
+    // Only refresh if auth state actually changed
+    if (previousAuthState !== currentAuthState) {
+      previousAuthState = currentAuthState;
+      if (_event === "SIGNED_IN" || _event === "SIGNED_OUT") {
+        window.location.href = window.location.origin;
+      }
+    }
+  });
 });

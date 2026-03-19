@@ -360,6 +360,20 @@ export async function getSandboxToons(page = 1, perPage = 16) {
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const toonIds = toons.map((t) => t.id).filter((id) => UUID_RE.test(id));
+  const legacyIds = toons.map((t) => t.id).filter((id) => !UUID_RE.test(id));
+
+  // Fetch frame_count from animations_feed (the RPC doesn't return it)
+  const allIds = [...toonIds, ...legacyIds];
+  if (allIds.length > 0) {
+    const { data: feedRows } = await db
+      .from("animations_feed")
+      .select("id, frame_count")
+      .in("id", allIds);
+    const frameMap = {};
+    (feedRows || []).forEach((f) => { frameMap[f.id] = f.frame_count ?? 0; });
+    toons.forEach((t) => { t.frame_count = frameMap[t.id] ?? t.frame_count ?? 0; });
+  }
+
   let commentCounts = {};
   if (toonIds.length > 0) {
     const { data: counts } = await db.from("comments").select("animation_id").in("animation_id", toonIds);
@@ -468,7 +482,7 @@ export async function getGoodPlaceCurrent() {
     expires_at:   data.expires_at,
     toon: {
       id:          toon.id,
-      frames:      toon.frame_count ?? 0,
+      frame_count: toon.frame_count ?? 0,
       title:       toon.title || toon.id,
       preview_url: toon.preview_url ?? null,
     },
@@ -510,7 +524,7 @@ export async function getGoodPlaceHistory(page = 1, perPage = 16) {
         expires_at:   row.expires_at,
         toon: {
           id:          toon.id,
-          frames:      toon.frame_count ?? 0,
+          frame_count: toon.frame_count ?? 0,
           title:       toon.title || toon.id,
           preview_url: toon.preview_url ?? null,
         },

@@ -5,6 +5,7 @@ import ToonCard from "@/components/ToonCard";
 import UsernameLink from "@/components/UsernameLink";
 import { UrlPaginator } from "@/components/paginator";
 import { SUPABASE_URL } from "@/lib/config";
+import ToonLinkPreview from "@/components/ToonLinkPreview";
 import {
   resolveUsernames,
   getLastToons,
@@ -36,7 +37,7 @@ function LastCommentItem({ comment, index }) {
         </Link>
       </div>
       <div className="head">
-        <UsernameLink username={uname} />: {text}
+        <UsernameLink username={uname} />: <ToonLinkPreview text={text} />
       </div>
     </div>
   );
@@ -121,7 +122,7 @@ export default async function LastPage({ params }) {
               </div>
               <div className="toon_tagline">
                 <UsernameLink username={goodPlace.author?.username || "unknown"} />,{" "}
-                {t('frames', { count: goodPlace.toon.frames })}
+                {t('frames', { count: goodPlace.toon.frame_count })}
               </div>
             </div>
           ) : (

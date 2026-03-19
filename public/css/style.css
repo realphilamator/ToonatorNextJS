@@ -2596,3 +2596,219 @@ h3 .withicon, .author_name .withicon {
     background-size: 16px !important;
     display: inline-block;
 }
+
+/* ============================================================
+   SETTINGS PAGE
+   ============================================================ */
+
+.loading {
+  font: 10pt Arial;
+  padding: 20px;
+}
+.wrap {
+  box-sizing: border-box;
+}
+.sidebar {
+  float: left;
+  width: 300px !important;
+  box-sizing: border-box;
+}
+.panel {
+  float: left;
+  width: 700px !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  font: 10pt Arial;
+  padding: 4px 0 0 10px;
+}
+.pageTitle {
+  text-align: left;
+  font: bold 18pt ToonatorFont, "Comic Sans MS";
+  margin-bottom: 10px;
+  border: none;
+}
+.section {
+  margin-bottom: 14px;
+}
+.sectionTitle {
+  font: bold 12pt Arial;
+  text-align: left;
+  border: none;
+  margin: 0 0 2px 0;
+  padding: 0;
+}
+.divider {
+  border: none;
+  border-top: 1px solid #cccccc;
+  margin: 0 0 6px 0;
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 4px 16px;
+  font: 10pt Arial;
+}
+.label {
+  min-width: 100px;
+}
+.radioGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.radioGroup label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  font: 10pt Arial;
+}
+.field input[type="text"],
+.field select,
+.rankField select {
+  font: 10pt Arial;
+  border: 1px solid #aaaaaa;
+  padding: 2px 4px;
+  background: #fff;
+}
+.birthInput {
+  width: 100px;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 3px 16px;
+  font: 10pt Arial;
+  color: #333333;
+}
+.checkbox label {
+  cursor: pointer;
+}
+.rankField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 4px 16px;
+  font: 10pt Arial;
+}
+.rankField select {
+  width: 120px;
+}
+.statusLine {
+  margin: 4px 0 2px 16px;
+  font: 10pt Arial;
+}
+.statusName {
+  font-weight: bold;
+}
+.statusFreeLine {
+  margin: 1px 0 3px 16px;
+  font: 10pt Arial;
+  color: #333;
+}
+.nickNote {
+  margin: 0 0 6px 16px;
+  font: 10pt Arial;
+  color: #333333;
+}
+.nickPreview {
+  margin: 0 0 5px 16px;
+  font: 11pt ToonatorFont, "Comic Sans MS";
+  font-weight: bold;
+  text-align: center;
+}
+.palette {
+  margin: 0 0 8px 16px;
+}
+.paletteGrid {
+  display: grid;
+  grid-template-columns: repeat(32, 18px);
+  gap: 3px;
+  max-width: 640px;
+}
+.swatch {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  border: none;
+  box-sizing: border-box;
+}
+.swatch:hover {
+  outline: 2px solid #000;
+  position: relative;
+  z-index: 2;
+}
+.swatch.selected {
+  outline: 2px solid #000;
+  position: relative;
+  z-index: 2;
+}
+.modNote {
+  margin: 0 0 4px 16px;
+  font: 10pt Arial;
+  color: #333333;
+  max-width: 580px;
+}
+.promotionInfo {
+  margin: 0 0 6px 16px;
+  font: 10pt Arial;
+  color: #333;
+  max-width: 580px;
+  line-height: 1.5;
+}
+.promotionTextarea {
+  display: block;
+  margin: 0 0 6px 16px;
+  width: 560px;
+  height: 70px;
+  font: 10pt Arial;
+  border: 1px solid #cccccc;
+  padding: 4px;
+  resize: vertical;
+}
+.promotionBtn {
+  margin-left: 16px;
+}
+.altRankNote {
+  margin: 3px 0 0 16px;
+  font: 10pt Arial;
+  color: #555555;
+  font-style: italic;
+}
+.submitRow {
+  margin-top: 10px;
+  border-top: 1px solid #cccccc;
+  padding-top: 8px;
+}
+.msg {
+  display: none;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  font: 10pt Arial;
+  border: 1px solid #aaa;
+  max-width: 500px;
+}
+.promoMsg {
+  margin: 5px 0 0 16px;
+}
+.ok {
+  border-color: #4a4 !important;
+  color: #292;
+  background: #f0fff0;
+}
+.err {
+  border-color: #a44 !important;
+  color: #922;
+  background: #fff0f0;
+}
+.promotionCooldown {
+  margin: 3px 0 6px 16px;
+  font: 10pt Arial;
+  color: #888888;
+  font-style: italic;
+}
+.settingsNav {
+  margin-top: 10px;
+}

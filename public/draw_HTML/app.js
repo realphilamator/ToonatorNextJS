@@ -42,7 +42,14 @@ let frames = [{ strokes: [] }];
 let currentFrame = 0;
 let previousFrame = -1;
 let lastViewedFrame = -1;
-let secondLastViewedFrame = -1;
+
+let onionHistory = [];
+
+function pushOnionHistory(leavingFrame) {
+  if (onionHistory[0] === leavingFrame) return
+  onionHistory.unshift(leavingFrame);
+  if (onionHistory.length > 2) onionHistory.length = 2;
+}
 
 let currentStroke = null;
 
@@ -55,11 +62,9 @@ let eyedropperActive = false;
 
 let oldschoolMode = false;
 
-// Per-frame undo/redo stacks
 let undoHistory = [[]];
 let redoHistory = [[]];
 
-// Tracks last 3 keypresses to detect the "old" cheat code
 const lastThreeKeys = [0, 0, 0];
 
 const brushSizes = [2, 4, 6, 10, 20];
@@ -95,13 +100,19 @@ function render() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   if (!playing) {
-    if (settings.onionSkin && lastViewedFrame >= 0 && lastViewedFrame !== currentFrame) {
-      if (settings.onionSkin2 && secondLastViewedFrame >= 0 && secondLastViewedFrame !== currentFrame) {
-        ctx.globalAlpha = settings.onionAlpha2;
-        drawFrameStrokes(ctx, frames[secondLastViewedFrame].strokes);
+    if (settings.onionSkin && onionHistory.length > 0) {
+      if (settings.onionSkin2 && onionHistory.length >= 2) {
+        const twoBack = frames[onionHistory[1]];
+        if (twoBack) {
+          ctx.globalAlpha = settings.onionAlpha2;
+          drawFrameStrokes(ctx, twoBack.strokes, true);
+        }
       }
-      ctx.globalAlpha = settings.onionAlpha1;
-      drawFrameStrokes(ctx, frames[lastViewedFrame].strokes);
+      const oneBack = frames[onionHistory[0]];
+      if (oneBack) {
+        ctx.globalAlpha = settings.onionAlpha1;
+        drawFrameStrokes(ctx, oneBack.strokes, true);
+      }
     }
   }
 
@@ -109,8 +120,13 @@ function render() {
   drawFrameStrokes(ctx, frames[currentFrame].strokes);
 }
 
-function drawFrameStrokes(targetCtx, strokes) {
+function drawFrameStrokes(targetCtx, strokes, isOnionSkin = false) {
   strokes.forEach(stroke => {
+    // Skip eraser strokes when drawing onion skin
+    if (isOnionSkin && stroke.eraser) {
+      return;
+    }
+    
     if (stroke.eraser) {
       targetCtx.globalCompositeOperation = 'destination-out';
     } else {
@@ -389,7 +405,6 @@ function undoStroke() {
     redoHistory[currentFrame].push(JSON.parse(JSON.stringify(frames[currentFrame].strokes)));
     frames[currentFrame].strokes = undoHistory[currentFrame].pop();
   } else {
-    // fallback if no history yet (e.g. strokes drawn before history tracking)
     frames[currentFrame].strokes.pop();
   }
   updateThumbnail(currentFrame);
@@ -477,9 +492,34 @@ function updateCursor() {
 ===================================================== */
 
 canvas.addEventListener("pointerdown", (e) => {
+  if (eyedropperActive) {
+    // Sample color at click position
+    const pixel = ctx.getImageData(e.offsetX, e.offsetY, 1, 1).data;
+    // If pixel is fully transparent (white canvas bg), treat as white
+    const r = pixel[3] === 0 ? 255 : pixel[0];
+    const g = pixel[3] === 0 ? 255 : pixel[1];
+    const b = pixel[3] === 0 ? 255 : pixel[2];
+    color = `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+    // Update custom color button to show picked color
+    const btn = document.getElementById('btnColorCustom');
+    const picker = document.getElementById('colorPicker');
+    btn.style.background = color;
+    btn.classList.add('enabled');
+    picker.disabled = false;
+    setActiveColor('btnColorCustom');
+    eyedropperActive = false;
+    eraserMode = false;
+    updateCursor();
+    setActiveTool("btnPencil");
+    return; // don't start a stroke
+  }
+
   canvas.setPointerCapture(e.pointerId);
   stopIfPlaying();
+
+  // Save undo snapshot BEFORE the new stroke is added
   saveUndoSnapshot();
+
   drawing = true;
   currentStroke = {
     size: brushSize,
@@ -542,20 +582,19 @@ function newFrame(insertBefore = false){
   stopIfPlaying();
   updateThumbnail(currentFrame);
 
-  if (insertBefore) {
-    frames.splice(currentFrame, 0, {strokes:[]});
-    frameThumbs.splice(currentFrame, 0, null);
-    undoHistory.splice(currentFrame, 0, []);
-    redoHistory.splice(currentFrame, 0, []);
-    lastViewedFrame = currentFrame > 0 ? currentFrame - 1 : -1;
-  } else {
-    frames.push({strokes:[]});
-    undoHistory.push([]);
-    redoHistory.push([]);
-    previousFrame = currentFrame;
-    currentFrame = frames.length - 1;
-    lastViewedFrame = previousFrame;
-  }
+  // Always insert relative to currentFrame:
+  // default = insert AFTER current; insertBefore flag = insert BEFORE current
+  const insertAt = insertBefore ? currentFrame : currentFrame + 1;
+
+  frames.splice(insertAt, 0, {strokes:[]});
+  frameThumbs.splice(insertAt, 0, null);
+  undoHistory.splice(insertAt, 0, []);
+  redoHistory.splice(insertAt, 0, []);
+
+  lastViewedFrame = currentFrame;
+  previousFrame   = currentFrame;
+  pushOnionHistory(currentFrame);
+  currentFrame    = insertAt;
 
   updateSliderMax();
   autoScrollTimeline();
@@ -569,7 +608,7 @@ function nextFrame(){
 
   if(currentFrame<frames.length-1){
 
-    secondLastViewedFrame = lastViewedFrame;
+    pushOnionHistory(currentFrame);
     lastViewedFrame = currentFrame;
     previousFrame=currentFrame;
     currentFrame++;
@@ -585,7 +624,7 @@ function prevFrame(){
 
   if(currentFrame>0){
 
-    secondLastViewedFrame = lastViewedFrame;
+    pushOnionHistory(currentFrame);
     lastViewedFrame = currentFrame;
     previousFrame=currentFrame;
     currentFrame--;
@@ -827,6 +866,7 @@ timelineCanvas.addEventListener("mousedown",(e)=>{
 
   if(frame<frames.length){
 
+    pushOnionHistory(currentFrame);
     lastViewedFrame = currentFrame;
     previousFrame=currentFrame;
     currentFrame=frame;
@@ -937,6 +977,7 @@ document.getElementById("btnDelete").addEventListener("click", () => {
   if (currentFrame >= frames.length) currentFrame = frames.length - 1;
   previousFrame = -1;
   lastViewedFrame = -1;
+  onionHistory = [];
   const newMax = Math.max(frames.length - 10, 0);
   if (newMax < max) pos = Math.min(pos, newMax);
   updateSliderMax();
@@ -968,6 +1009,7 @@ function setActiveTool(btnId) {
 }
 
 document.getElementById("btnPencil").addEventListener("click", () => {
+  color = "#000";
   eraserMode = false;
   eyedropperActive = false;
   oldschoolMode = false;
@@ -1001,15 +1043,6 @@ function switchOldschool() {
   if (cb) cb.checked = oldschoolMode;
 }
 
-canvas.addEventListener("click", (e) => {
-  if (!eyedropperActive) return;
-  const pixel = ctx.getImageData(e.offsetX, e.offsetY, 1, 1).data;
-  color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-  eyedropperActive = false;
-  eraserMode = false;
-  updateCursor();
-  setActiveTool("btnPencil");
-});
 
 
 /* =====================================================
@@ -1042,7 +1075,6 @@ let keybindsDisabled = false;
 
 document.addEventListener("keydown",(e)=>{
 
-  // Always track the "old" sequence regardless of keybinds state
   lastThreeKeys[0] = lastThreeKeys[1];
   lastThreeKeys[1] = lastThreeKeys[2];
   lastThreeKeys[2] = e.key.charCodeAt(0);
@@ -1053,68 +1085,69 @@ document.addEventListener("keydown",(e)=>{
   if (keybindsDisabled) return;
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-  // Ignore key repeat to prevent double undo/redo
   if (e.repeat) return;
 
-  switch(e.key.toLowerCase()){
+  switch(e.code){
 
-    case "z":
+    case "KeyZ":
       e.preventDefault();
       undoStroke();
       break;
 
-    case "y":
+    case "KeyY":
       e.preventDefault();
       redoStroke();
       break;
 
-    case "arrowright":
+    case "ArrowRight":
       nextFrame();
       break;
 
-    case "arrowleft":
+    case "ArrowLeft":
       prevFrame();
       break;
 
-    case "+":
-    case "=":
+    case "Equal":
       brushSize++;
       updateSizeIndicator();
       break;
 
-    case "-":
+    case "Minus":
       brushSize = Math.max(1, brushSize - 1);
       updateSizeIndicator();
       break;
 
-    case "c":
+    case "KeyC":
       copyFrame();
       break;
 
-    case "v":
+    case "KeyV":
       pasteFrame();
       break;
 
-    case "n":
+    case "KeyN":
       newFrame(e.ctrlKey || e.metaKey);
       break;
       
-    case "b":
+    case "KeyB":
       eraserMode = false;
       eyedropperActive = false;
       setActiveTool('btnPencil');
       updateCursor();
       break;
 
-    case "e":
+    case "KeyE":
       eraserMode = true;
       setActiveTool('btnEraser');
       updateCursor();
       break;
 
+    case "KeyM":
+      togglePalette();
+      break;
   }
 
-});
+}); 
 
 function setActiveColor(btnId) {
   document.querySelectorAll('#btnColorBlack, #btnColorRed, #btnColorCustom').forEach(btn => {
@@ -1216,7 +1249,7 @@ async function loadContinue() {
 
   const { data, error } = await db
     .from('animations')
-    .select('id, title, frames, frames_compressed, description, keywords, is_draft')
+    .select('id, title, frames, description, keywords, is_draft')
     .eq('id', continueId)
     .single();
 
@@ -1225,19 +1258,10 @@ async function loadContinue() {
     return;
   }
 
-  // Support both compressed (new) and uncompressed (legacy) frames
-  let loadedFrames;
-  if (data.frames_compressed) {
-    loadedFrames = decompressFrames(data.frames_compressed);
-  } else if (Array.isArray(data.frames)) {
-    loadedFrames = data.frames;
-  } else if (data.frames) {
-    loadedFrames = Object.values(data.frames);
-  } else {
-    loadedFrames = [{ strokes: [] }];
-  }
+  frames = Array.isArray(data.frames)
+    ? data.frames
+    : (data.frames ? Object.values(data.frames) : [{ strokes: [] }]);
 
-  frames = loadedFrames;
   frameThumbs = [];
   undoHistory = frames.map(() => []);
   redoHistory = frames.map(() => []);
@@ -1246,7 +1270,7 @@ async function loadContinue() {
   currentFrame = 0;
   previousFrame = -1;
   lastViewedFrame = -1;
-  secondLastViewedFrame = -1;
+  onionHistory = [];
 
   updateSliderMax();
   render();

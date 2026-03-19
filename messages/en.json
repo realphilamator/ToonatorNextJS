@@ -86,10 +86,13 @@
     "noComments": "No comments yet.",
     "commentTooLong": "Comment must be 250 characters or less.",
     "commentError": "Error posting comment: {error}",
+    "medals": "Give a medal",
     "like": "Like",
     "favorites": "Favorites",
     "continue": "Continue",
     "share": "Share:",
+    "sound": "Add sound",
+    "more": "More",
     "original": "Original",
     "favoritesSoon": "Favorites coming soon!",
     "loginToLike": "Please log in to like",
@@ -288,8 +291,10 @@
       "myPage": "My page",
       "settings": "Settings",
       "changePassword": "Change password",
-      "socialNetworks": "Social networks",
       "blacklist": "Blacklist"
+    },
+    "changePassword": {
+      "pageTitle": "Change password"
     },
     "aboutMe": {
       "title": "About me",
