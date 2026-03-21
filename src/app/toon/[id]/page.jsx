@@ -1,48 +1,23 @@
-// src/app/toon/[id]/page.jsx
-import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { getTranslations } from 'next-intl/server';
 import ToonClient from "./ToonClient";
 
-const SUPABASE_URL = "https://ytyhhmwnnlkhhpvsurlm.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eWhobXdubmxraGhwdnN1cmxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzcwNTAsImV4cCI6MjA4ODU1MzA1MH0.XZVH3j6xftSRULfhdttdq6JGIUSgHHJt9i-vXnALjH0";
-
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const STORAGE_URL = 'https://storage.m2inc.dev/ReToon';
 
 function isLegacyId(id) {
-  return /^[a-zA-Z0-9]{3,16}$/.test(id);
-}
-
-async function getAuthorData(userId) {
-  if (!userId) return { username: "unknown" };
-  const { data } = await db.rpc("get_user_by_id", { p_user_id: userId });
-  if (!data || data.length === 0) return { username: "unknown" };
-  return { username: data[0].username || "unknown" };
-}
-
-async function getContinuedFrom(id, isLegacy) {
-  if (!id) return null;
-  if (isLegacy || isLegacyId(id)) {
-    const { data } = await db.from("legacy_animations").select("id,title,user_id").eq("id", id).maybeSingle();
-    if (!data) return null;
-    const author = await getAuthorData(data.user_id);
-    return { id: data.id, title: data.title || "Untitled", author: author.username, legacy: true };
-  } else {
-    const { data } = await db.from("animations").select("id,title,user_id").eq("id", id).maybeSingle();
-    if (!data) return null;
-    const author = await getAuthorData(data.user_id);
-    return { id: data.id, title: data.title || "Untitled", author: author.username, legacy: false };
-  }
+  return /^[a-zA-Z0-9]{3,16}$/.test(id) && !/^[0-9a-f]{8}-/.test(id);
 }
 
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const t = await getTranslations('metadata.toon');
   const legacy = isLegacyId(id);
-  const table = legacy ? "legacy_animations" : "animations";
-  const { data } = await db.from(table).select("title,description").eq("id", id).maybeSingle();
-  if (!data) return { title: t('fallbackTitle') };
+
+  const res = await fetch(`${API_URL}/${legacy ? 'legacy-animations' : 'animations'}/${id}`);
+  if (!res.ok) return { title: t('fallbackTitle') };
+  const data = await res.json();
+
   const displayTitle = data.title || t('untitled', { defaultValue: 'Untitled' });
   return {
     title: `${displayTitle} ${t('titleSuffix')}`,
@@ -51,8 +26,8 @@ export async function generateMetadata({ params }) {
       title: `${displayTitle} ${t('titleSuffix')}`,
       description: data.description || "",
       images: [legacy
-        ? `${SUPABASE_URL}/storage/v1/object/public/legacyAnimations/${id}_100.gif`
-        : `${SUPABASE_URL}/storage/v1/object/public/previews/${id}_100.gif`
+        ? `${STORAGE_URL}/legacyAnimations/${id}_100.gif`
+        : `${STORAGE_URL}/previews/${id}_100.gif`
       ],
     },
   };
@@ -61,31 +36,33 @@ export async function generateMetadata({ params }) {
 export default async function ToonPage({ params }) {
   const { id } = await params;
   const legacy = isLegacyId(id);
-  const table = legacy ? "legacy_animations" : "animations";
 
-  // For modern toons, only select metadata columns — frames are fetched
-  // client-side to avoid bloating the RSC payload (413 on large toons).
-  // Legacy toons use select("*") since they don't store heavy frame blobs.
-  const { data: toon } = await db.from(table)
-    .select(legacy ? "*" : "id,title,description,keywords,settings,created_at,user_id,continued_from,likes")
-    .eq("id", id)
-    .maybeSingle();
-  if (!toon) notFound();
-
-  const [author, continuedFrom, comments, likeCount] = await Promise.all([
-    getAuthorData(toon.user_id),
-    getContinuedFrom(toon.continued_from, legacy),
-    db.from("comments")
-      .select("id,text,created_at,author_username,user_id")
-      .eq(legacy ? "legacy_animation_id" : "animation_id", id)
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .then(r => r.data || []),
-    db.from("likes")
-      .select("*", { count: "exact", head: true })
-      .eq(legacy ? "legacy_animation_id" : "animation_id", id)
-      .then(r => r.count || 0),
+  const [toonRes, commentsRes, likeRes] = await Promise.all([
+    fetch(`${API_URL}/${legacy ? 'legacy-animations' : 'animations'}/${id}`),
+    fetch(`${API_URL}/comments/${id}?limit=50`),
+    fetch(`${API_URL}/likes/${id}/count`),
   ]);
+
+  if (!toonRes.ok) notFound();
+
+  const toon = await toonRes.json();
+  const comments = commentsRes.ok ? await commentsRes.json() : [];
+  const likeData = likeRes.ok ? await likeRes.json() : { count: 0 };
+
+  const authorRes = await fetch(`${API_URL}/profiles/by-id/${toon.user_id}`);
+  const author = authorRes.ok ? await authorRes.json() : { username: 'unknown' };
+
+  let continuedFrom = null;
+  if (toon.continued_from) {
+    const contLegacy = isLegacyId(toon.continued_from);
+    const contRes = await fetch(`${API_URL}/${contLegacy ? 'legacy-animations' : 'animations'}/${toon.continued_from}`);
+    if (contRes.ok) {
+      const contData = await contRes.json();
+      const contAuthorRes = await fetch(`${API_URL}/profiles/by-id/${contData.user_id}`);
+      const contAuthor = contAuthorRes.ok ? await contAuthorRes.json() : { username: 'unknown' };
+      continuedFrom = { id: contData.id, title: contData.title || 'Untitled', author: contAuthor.username, legacy: contLegacy };
+    }
+  }
 
   return (
     <ToonClient
@@ -94,7 +71,7 @@ export default async function ToonPage({ params }) {
       author={author}
       continuedFrom={continuedFrom}
       initialComments={comments}
-      initialLikeCount={likeCount}
+      initialLikeCount={likeData.count ?? toon.likes ?? 0}
       isLegacy={legacy}
     />
   );

@@ -383,5 +383,17 @@
     },
     "submit": "Submit",
     "saving": "Saving..."
-  }
+  },
+  "key-0": "*",
+  "key": "*",
+  "reddit": "Reddit",
+  "twitter": "Twitter",
+  "mentioned-you": "mentioned you",
+  "mentioned-you-in-a-toon-description": "mentioned you in a toon description",
+  "mentioned-you-in-a-toon-title": "mentioned you in a toon title",
+  "mentioned-you-in-a-comment": "mentioned you in a comment",
+  "key-1": "@",
+  "mention-username": "Mention {0}",
+  "reply-to-username": "Reply to {0}",
+  "loading-toon": "Loading toon…"
 }

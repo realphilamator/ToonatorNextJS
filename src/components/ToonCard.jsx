@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import UsernameLink from "./UsernameLink";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/config";
+import { apiFetch } from "@/lib/config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -29,35 +29,25 @@ export default function ToonCard({
   // ── Comment count ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (commentCountProp != null) return;
-    const column = isLegacy ? "legacy_animation_id" : "animation_id";
-    db.from("comments")
-      .select("*", { count: "exact", head: true })
-      .eq(column, toon.id)
-      .then(({ count }) => setCommentCountFetched(count || 0));
+    apiFetch(`/comments/${toon.id}?limit=0`).then((data) => {
+      setCommentCountFetched(Array.isArray(data) ? data.length : 0);
+    });
   }, [toon.id, isLegacy, commentCountProp]);
 
   // ── Fetch continued_from info ────────────────────────────────────────────────
   useEffect(() => {
     if (!toon.continued_from) return;
-
-    const isLegacyContinuation = !UUID_RE.test(toon.continued_from);
-    const table = isLegacyContinuation ? "legacy_animations" : "animations";
-
-    db.from(table)
-      .select("id, title, profiles(username)")
-      .eq("id", toon.continued_from)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setContinuedFromInfo({
-            id: data.id,
-            title: data.title || "Untitled",
-            username: data.profiles?.username || "",
-          });
-        } else {
-          setContinuedFromInfo({ id: toon.continued_from, title: "Untitled", username: "" });
-        }
-      });
+    apiFetch(`/animations/${toon.continued_from}`).then((data) => {
+      if (data) {
+        setContinuedFromInfo({
+          id: data.id,
+          title: data.title || "Untitled",
+          username: data.username || "",
+        });
+      } else {
+        setContinuedFromInfo({ id: toon.continued_from, title: "Untitled", username: "" });
+      }
+    });
   }, [toon.continued_from]);
 
   // ── Album toggle ─────────────────────────────────────────────────────────────

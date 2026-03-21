@@ -3,6 +3,11 @@
 
 import { useEffect } from 'react';
 
+export const metadata = {
+  title: 'Maintenance - Toonator',
+  description: 'Toonator is currently undergoing maintenance.',
+};
+
 export default function MaintenancePage() {
   useEffect(() => {
     document.documentElement.lang = 'en';

@@ -1,13 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { SUPABASE_URL } from "@/lib/config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOON_LINK_RE = /https?:\/\/(?:www\.)?toonator\.site\/toon\/([a-zA-Z0-9-]+)/g;
 
 function getToonPreviewUrl(toonId, size = 40) {
-  const bucket = UUID_RE.test(toonId) ? "previews" : "legacyAnimations";
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${toonId}_${size}.gif`;
+  return `https://storage.m2inc.dev/ReToon/previews/${toonId}_${size}.gif`;
 }
 
 function extractToonIdFromUrl(url) {

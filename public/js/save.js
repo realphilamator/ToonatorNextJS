@@ -1,5 +1,5 @@
 /* =====================================================
-   SAVE DIALOG - v2
+   SAVE DIALOG - v3 (migrated from Supabase to REST API)
 ===================================================== */
 
 function openSaveDialog() {
@@ -32,10 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loadLocalBtn').addEventListener('click', loadLocal);
 });
 
+/* =====================================================
+   COMPRESSION HELPERS
+===================================================== */
+
 function compressFrames(framesArray) {
   const json = JSON.stringify(framesArray);
-  const compressed = pako.gzip(json);           // Uint8Array
-  // Base64-encode for JSON/DB storage
+  const compressed = pako.gzip(json);
   return btoa(String.fromCharCode(...compressed));
 }
 
@@ -53,7 +56,6 @@ function decompressFrames(base64str) {
 function saveLocal() {
   const title = (document.getElementById('saveDialogName').value.trim() || 'animation');
 
-  // Compress frames + settings into a single payload
   const payload = {
     version: 2,
     settings: {
@@ -65,7 +67,7 @@ function saveLocal() {
   };
 
   const json = JSON.stringify(payload);
-  const compressed = pako.gzip(json);           // Uint8Array
+  const compressed = pako.gzip(json);
   const blob = new Blob([compressed], { type: 'application/octet-stream' });
 
   const url = URL.createObjectURL(blob);
@@ -95,15 +97,12 @@ function loadLocal() {
       let loaded;
 
       if (file.name.endsWith('.toon')) {
-        // Compressed binary format
         const arrayBuffer = await file.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
         const json = pako.ungzip(bytes, { to: 'string' });
         const data = JSON.parse(json);
         loaded = Array.isArray(data) ? data : data.frames;
-
       } else {
-        // Legacy plain JSON
         const text = await file.text();
         const data = JSON.parse(text);
         loaded = Array.isArray(data)
@@ -140,11 +139,8 @@ function loadLocal() {
   input.click();
 }
 
-
 /* =====================================================
    RENDER FRAME TO CANVAS AT SIZE
-   Correctly handles eraser strokes via destination-out,
-   matching the live canvas rendering in app.js.
 ===================================================== */
 
 function renderFrameToCanvas(frame, width, height) {
@@ -159,14 +155,12 @@ function renderFrameToCanvas(frame, width, height) {
   frame.strokes.forEach(stroke => {
     if (!stroke.points || stroke.points.length === 0) return;
 
-    // Eraser strokes use destination-out to cut through the canvas
     if (stroke.eraser) {
       cx.globalCompositeOperation = 'destination-out';
     } else {
       cx.globalCompositeOperation = 'source-over';
     }
 
-    // Oldschool brush — filled polygon
     if (stroke.oldschool && stroke.polygon && stroke.polygon.length > 0) {
       cx.beginPath();
       stroke.polygon.forEach((p, i) => {
@@ -174,11 +168,7 @@ function renderFrameToCanvas(frame, width, height) {
         i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
       });
       cx.closePath();
-      if (stroke.eraser) {
-        cx.fillStyle = 'rgba(0,0,0,1)'; // color doesn't matter for destination-out, just needs alpha
-      } else {
-        cx.fillStyle = stroke.color;
-      }
+      cx.fillStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color;
       cx.fill();
       cx.globalCompositeOperation = 'source-over';
       return;
@@ -191,7 +181,6 @@ function renderFrameToCanvas(frame, width, height) {
 
     cx.beginPath();
     cx.strokeStyle = stroke.eraser ? 'rgba(0,0,0,1)' : stroke.color;
-    // Allow sub-pixel stroke width for small canvases to maintain proportions
     const minStrokeWidth = (width <= 40) ? 0.3 : 1;
     cx.lineWidth = Math.max(minStrokeWidth, stroke.size * scaleX);
     cx.lineCap = 'round';
@@ -208,13 +197,9 @@ function renderFrameToCanvas(frame, width, height) {
       });
     }
     cx.stroke();
-
-    // Always reset after each stroke
     cx.globalCompositeOperation = 'source-over';
   });
 
-  // Flatten to white background — GIF doesn't support transparency,
-  // so destination-out would leave transparent holes without this step.
   const flat = document.createElement('canvas');
   flat.width = width;
   flat.height = height;
@@ -257,53 +242,15 @@ function generateGif(width, height) {
 }
 
 /* =====================================================
-   MENTION NOTIFICATIONS
-   Extracts @username tokens from text and inserts a
-   notification row for each mentioned user.
-   Uses the existing get_user_by_username RPC.
+   CANVAS TO BLOB HELPER
 ===================================================== */
 
-function extractMentions(text) {
-  if (!text) return [];
-  const seen = new Set();
-  for (const m of text.matchAll(/@([a-zA-Z0-9_]{3,20})/g)) seen.add(m[1]);
-  return [...seen];
-}
-
-async function fireMentionNotifications({ fromUsername, selfUserId, text, type, toonId }) {
-  const usernames = extractMentions(text);
-  if (!usernames.length) return;
-
-  const typeLabel = {
-    mention_toon_title:       'mentioned you in a toon title',
-    mention_toon_description: 'mentioned you in a toon description',
-  }[type] ?? 'mentioned you';
-
-  const rows = [];
-  await Promise.all(usernames.map(async (username) => {
-    const { data } = await db.rpc('get_user_by_username', { p_username: username });
-    const userId = data?.[0]?.id ?? null;
-    if (!userId || userId === selfUserId) return;
-    rows.push({
-      user_id:       userId,
-      from_username: fromUsername,
-      type,
-      amount:        0,
-      reason:        type,
-      toon_id:       toonId,
-      message:       `${fromUsername} ${typeLabel}.`,
-      is_read:       false,
-    });
-  }));
-
-  if (rows.length) {
-    const { error } = await db.from('notifications').insert(rows);
-    if (error) console.warn('[mentions] notification insert error:', error.message);
-  }
+function canvasToBlob(canvas, type = 'image/gif') {
+  return new Promise((resolve) => canvas.toBlob(resolve, type));
 }
 
 /* =====================================================
-   SAVE ANIMATION  —  compresses frames before DB insert
+   SAVE ANIMATION
 ===================================================== */
 
 async function saveAnimation() {
@@ -319,10 +266,14 @@ async function saveAnimation() {
   status.textContent = 'Saving...';
 
   try {
-    const { data: { user }, error: userError } = await db.auth.getUser();
-    if (userError || !user) throw new Error('You must be logged in to save.');
+    // Check auth
+    const token = getToken();
+    if (!token) throw new Error('You must be logged in to save.');
 
-    const username = user.user_metadata?.username || user.email;
+    const payload = parseToken(token);
+    if (!payload || (payload.exp && payload.exp * 1000 < Date.now())) {
+      throw new Error('Your session has expired. Please log in again.');
+    }
 
     const savedSettings = {
       playFPS:           settings.playFPS,
@@ -330,61 +281,68 @@ async function saveAnimation() {
       simplifyTolerance: settings.simplifyTolerance,
     };
 
-    // Compress frames — store as base64 string in a text/varchar column
     const framesCompressed = compressFrames(frames);
 
     const insertData = {
-      user_id:            user.id,
       title,
       keywords,
       description,
-      is_draft:           isDraft,
-      frames_compressed:  framesCompressed,   // NEW compressed column
-      settings:           savedSettings,
+      is_draft:          isDraft,
+      frames_compressed: framesCompressed,
+      settings:          savedSettings,
+      frame_count:       frames.length,
     };
 
     if (window.CONTINUE_ID && /^[a-zA-Z0-9_-]{1,100}$/.test(window.CONTINUE_ID)) {
       insertData.continued_from = window.CONTINUE_ID;
     }
 
-    const { data: anim, error: insertError } = await db
-      .from('animations')
-      .insert(insertData)
-      .select('id')
-      .single();
+    // Save animation to backend
+    const saveRes = await fetch(`${API_URL}/animations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(insertData),
+    });
 
-    if (insertError) throw insertError;
+    if (!saveRes.ok) {
+      const err = await saveRes.json();
+      throw new Error(err.error || 'Failed to save animation');
+    }
 
-    // ── Fire @mention notifications for title and description (non-blocking) ──
-    const mentionOpts = { fromUsername: username, selfUserId: user.id, toonId: anim.id };
-    Promise.all([
-      fireMentionNotifications({ ...mentionOpts, text: title,       type: 'mention_toon_title' }),
-      fireMentionNotifications({ ...mentionOpts, text: description, type: 'mention_toon_description' }),
-    ]).catch(err => console.warn('[mentions] error:', err));
+    const anim = await saveRes.json();
 
     status.textContent = 'Generating previews...';
 
     const [blob200, blob40] = await Promise.all([
       generateGif(200, 100),
-      generateGif(40,  20)
+      generateGif(40,  20),
     ]);
-
-    const upload = async (blob, path) => {
-      const result = await db.storage
-        .from('previews')
-        .upload(path, blob, { contentType: 'image/gif', upsert: true });
-      if (result.error) throw result.error;
-    };
 
     status.textContent = 'Uploading previews...';
 
-    await Promise.all([
-      upload(blob200, `${anim.id}_100.gif`),
-      upload(blob40,  `${anim.id}_40.gif`)
-    ]);
+    const formData = new FormData();
+    formData.append('file200', blob200, `${anim.id}_100.gif`);
+    formData.append('file40',  blob40,  `${anim.id}_40.gif`);
+
+    const previewRes = await fetch(`${API_URL}/uploads/preview?toonId=${anim.id}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!previewRes.ok) {
+      // Animation saved but preview failed — not fatal, just warn
+      console.warn('[save] Preview upload failed, animation still saved');
+    }
 
     status.textContent = 'Saved!';
-    setTimeout(() => { closeSaveDialog(); window.top.location.href = `/toon/${anim.id}`; }, 800);
+    setTimeout(() => {
+      closeSaveDialog();
+      window.top.location.href = `/toon/${anim.id}`;
+    }, 800);
 
   } catch (err) {
     console.error('[save] ERROR:', err);

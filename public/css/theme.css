@@ -1,99 +1,74 @@
-/* ============================================================
-   THEME VARIABLES — Light Mode (default)
-   ============================================================ */
 :root {
     --color-bg:              #ffffff;
     --color-text:            #000000;
     --color-border:          #cccccc;
     --color-border-light:    #eeeeee;
 
-    /* Header */
     --color-header-link:     #000000;
     --color-header-link-hover: #0000ff;
 
-    /* Dropdown menu */
     --color-menu-bg:         #ffffff;
     --color-menu-link:       #000000;
     --color-menu-hover-bg:   #eeeeee;
 
-    /* Counters / badges */
     --color-counter-bg:      rgba(255, 255, 255, 0.8);
 
-    /* Content */
     --color-footer-text:     #888888;
     --color-footer-link:     #888888;
     --color-footer-link-hover: #000000;
 
-    /* Toon previews */
     --color-toon-bg:         #eeeeee;
     --color-toon-name:       #555555;
 
-    /* Paginator */
     --color-pager-link:      #555555;
     --color-pager-hover-bg:  #eeeeee;
     --color-pager-current-border: #888888;
 
-    /* Buttons */
     --color-btn-bg:          #dddddd;
     --color-btn-text:        #888888;
     --color-btn-hover-bg:    #cccccc;
     --color-btn-hover-text:  #000000;
 
-    /* Native buttons */
     --color-button-bg-top:   #ffffff;
     --color-button-bg-bot:   #efefef;
     --color-button-bg:       #f6f6f6;
     --color-button-border:   #cccccc;
     --color-button-shadow:   #999999;
 
-    /* Notify bar */
     --color-notify-bg:       #ffffed;
 
-    /* Misc text helpers */
     --color-gray-text:       #888888;
     --color-muted:           #555555;
 
-    /* .gray utility class */
     --color-gray-bg:         #eeeeee;
 
-    /* Pages pagination */
     --color-pages-link:      #888888;
     --color-pages-link-bg:   #eeeeee;
     --color-pages-hover-bg:  #cccccc;
     --color-pages-current-bg:#ddffdd;
 
-    /* .sn info block */
     --color-info-block-bg:   #eeeeee;
 
-    /* .sn login popup */
     --color-popup-bg:        #ffffff;
     --color-popup-close:     #cccccc;
 
-    /* .sn input */
     --color-input-border:    #cccccc;
     --color-input-shadow:    #dddddd;
 
-    /* Hint */
     --color-hint-bg:         rgba(255, 200, 200, 0.8);
     --color-hint-border:     #cccccc;
     --color-hint-close:      #cc8888;
 
-    /* Draft toons */
     --color-draft-bg:        #333333;
     --color-draft-text:      #ffffff;
 
-    /* Cite link */
     --color-cite:            #cccccc;
     --color-cite-hover:      #555555;
 
-    /* Toggle button */
     --color-toggle-bg:       #eeeeee;
     --color-toggle-icon:     #333333;
 }
 
-/* ============================================================
-   THEME VARIABLES — Dark Mode
-   ============================================================ */
 [data-theme="dark"] {
     --color-bg:              #1a1a1a;
     --color-text:            #e0e0e0;
@@ -165,17 +140,11 @@
     --color-toggle-icon:     #e0e0e0;
 }
 
-/* ============================================================
-   APPLY VARIABLES — replace hardcoded values in your styles
-   Add this AFTER your existing stylesheet, or merge into it.
-   ============================================================ */
-
 body {
     background-color: var(--color-bg);
     color: var(--color-text);
 }
 
-/* Header */
 #header {
     border-bottom-color: var(--color-border);
 }
@@ -186,7 +155,6 @@ body {
     color: var(--color-header-link-hover);
 }
 
-/* Dropdown menus */
 #newmenu > li ul {
     background: var(--color-menu-bg);
     border-color: var(--color-border-light);
@@ -201,12 +169,10 @@ body {
     background: var(--color-counter-bg);
 }
 
-/* Content border */
 #content {
     border-bottom-color: var(--color-border);
 }
 
-/* Footer */
 #footer {
     color: var(--color-footer-text);
 }
@@ -217,7 +183,6 @@ body {
     color: var(--color-footer-link-hover);
 }
 
-/* Toon previews */
 .toon_preview {
     background-color: var(--color-toon-bg);
 }
@@ -226,7 +191,6 @@ body {
     color: var(--color-toon-name);
 }
 
-/* Draft toons */
 .draft {
     background: var(--color-draft-bg);
     color: var(--color-draft-text);
@@ -237,7 +201,6 @@ body {
     color: var(--color-draft-text);
 }
 
-/* Paginator */
 div.paginator ul li a {
     color: var(--color-pager-link);
 }
@@ -250,7 +213,6 @@ div.paginator ul li.current a {
     border-color: var(--color-pager-current-border);
 }
 
-/* .btn links */
 a.btn {
     background: var(--color-btn-bg);
     color: var(--color-btn-text);
@@ -260,7 +222,6 @@ a.btn:hover {
     background: var(--color-btn-hover-bg);
 }
 
-/* Native buttons */
 button {
     background: linear-gradient(to bottom, var(--color-button-bg-top), var(--color-button-bg-bot)) var(--color-button-bg);
     border-color: var(--color-button-border);
@@ -273,18 +234,15 @@ button:focus {
     border-color: var(--color-button-shadow);
 }
 
-/* Notify bar */
 #notify_wrap {
     background: var(--color-notify-bg);
     border-color: var(--color-border);
 }
 
-/* .gray utility */
 .gray {
     background: var(--color-gray-bg);
 }
 
-/* Pages pagination */
 .pages a {
     color: var(--color-pages-link);
     background: var(--color-pages-link-bg);
@@ -297,7 +255,6 @@ button:focus {
     background: var(--color-pages-current-bg);
 }
 
-/* Comment avatars & borders */
 img.avatar {
     border-color: var(--color-border);
 }
@@ -305,7 +262,6 @@ img.p100 {
     border-color: var(--color-border);
 }
 
-/* Comment / toon comments borders */
 .toon_comments .header,
 .toon_comments .form {
     border-bottom-color: var(--color-border);
@@ -317,12 +273,10 @@ img.p100 {
     color: var(--color-text);
 }
 
-/* .sn info block */
 .sn .info-block {
     background: var(--color-info-block-bg);
 }
 
-/* .sn login / popup */
 .sn .login-wrapper,
 .sn .popup .wrapper {
     background: var(--color-popup-bg);
@@ -340,7 +294,6 @@ img.p100 {
     border-bottom-color: var(--color-border-light);
 }
 
-/* .sn inputs */
 .sn input.input,
 .sn .captcha_show {
     border-color: var(--color-input-border);
@@ -354,7 +307,6 @@ img.p100 {
     color: var(--color-text);
 }
 
-/* .sn hints */
 .sn .hint {
     background: var(--color-hint-bg);
     border-color: var(--color-hint-border);
@@ -363,7 +315,6 @@ img.p100 {
     color: var(--color-hint-close);
 }
 
-/* Cite links */
 a.cite {
     color: var(--color-cite);
 }
@@ -371,7 +322,6 @@ a.cite:hover {
     color: var(--color-cite-hover);
 }
 
-/* reg_variant */
 .reg_variant li {
     border-color: var(--color-border-light);
 }
@@ -383,12 +333,10 @@ a.cite:hover {
     border-color: var(--color-border);
 }
 
-/* levelup comment */
 .levelup_comment {
     border-color: var(--color-text);
 }
 
-/* toon page links */
 #toon_page h2 a {
     color: var(--color-muted);
 }
@@ -415,11 +363,6 @@ a.cite:hover {
     color: var(--color-text);
 }
 
-/* ============================================================
-   DARK MODE TOGGLE BUTTON
-   Drop this anywhere in your header HTML:
-   <button id="theme-toggle" title="Toggle dark/light mode">🌙</button>
-   ============================================================ */
 #theme-toggle {
     background: var(--color-toggle-bg);
     border: 1px solid var(--color-border);

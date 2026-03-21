@@ -23,7 +23,6 @@ function formatDate(iso) {
   );
 }
 
-// ─── Decompress frames ────────────────────────────────────────────────────────
 function resolveFrames(toon) {
   if (toon.frames_compressed) {
     try {
@@ -42,7 +41,6 @@ function resolveFrames(toon) {
   return [];
 }
 
-// ─── Toon Player ──────────────────────────────────────────────────────────────
 function ToonPlayer({ frames, settings }) {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -83,7 +81,6 @@ function ToonPlayer({ frames, settings }) {
   return <div ref={containerRef} style={{ lineHeight: 0 }} />;
 }
 
-// ─── Legacy Ruffle Player ─────────────────────────────────────────────────────
 function LegacyPlayer({ toonId }) {
   const containerRef = useRef(null);
 
@@ -121,7 +118,6 @@ function LegacyPlayer({ toonId }) {
   return <div ref={containerRef} style={{ width: "610px", height: "350px" }} />;
 }
 
-// ─── Main Draft Client Component ──────────────────────────────────────────────
 export default function DraftClient({ toonId, toon, author, continuedFrom, isLegacy }) {
   const t = useTranslations('draft');
   const [currentUser, setCurrentUser] = useState(null);

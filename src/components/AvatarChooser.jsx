@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { getUserToonsPaginated } from "@/lib/api";
-import { SUPABASE_URL } from "@/lib/config";
 
 const PER_PAGE = 12;
 
@@ -85,9 +84,7 @@ export default function AvatarChooser({ profileId, onSelect, onClose }) {
                     {toons.map((toon) => {
                       const title      = toon.title || t("untitled");
                       const frameCount = toon.frame_count ?? 0;
-                      const previewSrc =
-                        toon.preview_url ||
-                        `${SUPABASE_URL}/storage/v1/object/public/previews/${toon.id}_100.gif`;
+                      const previewSrc = toon.preview_url || "/img/avatar100.gif";
 
                       return (
                         <div

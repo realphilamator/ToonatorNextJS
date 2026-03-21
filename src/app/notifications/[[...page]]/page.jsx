@@ -20,7 +20,6 @@ function getThumbnailUrl(toonId) {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${toonId}_100.gif`;
 }
 
-// Parse "user1, user2, user3 liked your toon" → actors: ["user1","user2","user3"], suffix: " liked your toon"
 function parseReason(reason) {
   const suffixes = [' liked your toon', ' commented on your toon'];
   for (const suffix of suffixes) {
@@ -30,17 +29,13 @@ function parseReason(reason) {
       return { actors, suffix };
     }
   }
-  // Fallback: grab first word as actor
   const match = reason.match(/^(\S+)/);
   return { actors: match ? [match[1]] : [], suffix: reason.slice(match?.[1]?.length ?? 0) };
 }
 
-// Render the text of a mention notification, turning the from_username into a UsernameLink.
-// message format: "username mentioned you in a comment."
 function MentionText({ notification }) {
   const { from_username, message } = notification;
   if (!from_username || !message) return <span>{message || 'mentioned you'}</span>;
-  // Split message on the username so we can linkify just that part
   const idx = message.indexOf(from_username);
   if (idx === -1) return <span>{message}</span>;
   const before = message.slice(0, idx);
@@ -142,9 +137,7 @@ export default function NotificationsPage({ searchParams }) {
               const thumbUrl = getThumbnailUrl(n.toon_id);
               const isMention = n.type?.startsWith('mention_');
 
-              // ── Mention notifications use from_username + message directly ──
               if (isMention) {
-                // For comment mentions, link to the toon; toon mentions link to the toon too
                 const href = n.toon_id ? `/toon/${n.toon_id}` : null;
                 return (
                   <div key={n.id} className={`notif_row${i % 2 === 0 ? ' gray' : ''}`}>
@@ -166,7 +159,6 @@ export default function NotificationsPage({ searchParams }) {
                 );
               }
 
-              // ── Like / comment notifications (existing behaviour) ──
               const { actors, suffix } = parseReason(n.reason);
               const actorNodes = actors.map((name, idx) => (
                 <span key={name}>

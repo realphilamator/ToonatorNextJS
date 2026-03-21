@@ -1,14 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/config";
-import { SUPABASE_URL } from "@/lib/config";
+import { apiFetch } from "@/lib/config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function getAvatarUrl(avatarToonId, size) {
   if (!avatarToonId) return "/img/avatar100.gif";
-  const bucket = UUID_RE.test(avatarToonId) ? "previews" : "legacyAnimations";
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${avatarToonId}_${size}.gif`;
+  return `https://storage.m2inc.dev/ReToon/previews/${avatarToonId}_${size}.gif`;
 }
 
 /**
@@ -33,22 +31,9 @@ export default function UserAvatar({ username, avatarToonId, size = 40, classNam
     avatarToonId ? getAvatarUrl(avatarToonId, size) : "/img/avatar100.gif"
   );
 
-  useEffect(() => {
-    // If avatarToonId provided directly, just build URL — no fetch needed
-    if (avatarToonId) {
-      setSrc(getAvatarUrl(avatarToonId, size));
-      return;
-    }
-    // Otherwise look up by username
-    if (!username) return;
-    db.from("profiles")
-      .select("avatar_toon")
-      .eq("username", username)
-      .single()
-      .then(({ data }) => {
-        if (data?.avatar_toon) setSrc(getAvatarUrl(data.avatar_toon, size));
-      });
-  }, [username, avatarToonId, size]);
+  apiFetch(`/profiles/${username}`).then((data) => {
+    if (data?.avatar_toon) setSrc(getAvatarUrl(data.avatar_toon, size));
+  });
 
   return (
     <img
