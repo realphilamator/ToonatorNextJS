@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import ToonClient from "./ToonClient";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const STORAGE_URL = 'https://storage.m2inc.dev/ReToon';
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
 
 function isLegacyId(id) {
   return /^[a-zA-Z0-9]{3,16}$/.test(id) && !/^[0-9a-f]{8}-/.test(id);
@@ -39,15 +39,12 @@ export default async function ToonPage({ params }) {
 
   const [toonRes, commentsRes, likeRes] = await Promise.all([
     fetch(`${API_URL}/${legacy ? 'legacy-animations' : 'animations'}/${id}`),
-    fetch(`${API_URL}/comments/${id}?limit=50`),
-    fetch(`${API_URL}/likes/${id}/count`),
-  ]);
+    fetch(`${API_URL}/comments/${id}?limit=50`)]);
 
   if (!toonRes.ok) notFound();
 
   const toon = await toonRes.json();
   const comments = commentsRes.ok ? await commentsRes.json() : [];
-  const likeData = likeRes.ok ? await likeRes.json() : { count: 0 };
 
   const authorRes = await fetch(`${API_URL}/profiles/by-id/${toon.user_id}`);
   const author = authorRes.ok ? await authorRes.json() : { username: 'unknown' };
@@ -71,7 +68,7 @@ export default async function ToonPage({ params }) {
       author={author}
       continuedFrom={continuedFrom}
       initialComments={comments}
-      initialLikeCount={likeData.count ?? toon.likes ?? 0}
+      initialLikeCount={toon.likes}
       isLegacy={legacy}
     />
   );

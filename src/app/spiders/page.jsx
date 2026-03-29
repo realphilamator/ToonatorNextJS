@@ -4,9 +4,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import Includes from "@/components/Includes";
 import { useAuth } from '@/hooks/auth';
-import { formatDate, getSpooderTransactions, describeSpooderTransaction } from '@/lib/api';
+import { formatDateNice, getSpooderTransactions, describeSpooderTransaction } from '@/lib/api';
 import { UrlPaginator } from '@/components/paginator';
-import { SUPABASE_URL, db } from '@/lib/config';
 
 const PER_PAGE = 20;
 
@@ -21,11 +20,7 @@ function getThumbnailUrl(toonId) {
 }
 
 async function markAllSpoodersRead(userId) {
-  await db
-    .from('spooder_transactions')
-    .update({ is_read: true })
-    .eq('user_id', userId)
-    .eq('is_read', false);
+  // Implement Spooders Read Marking
   const spidersA = document.querySelector('#spiders > a');
   const spidersCounter = document.querySelector('#spiders .counter');
   if (spidersA) spidersA.classList.remove('active');
@@ -96,21 +91,21 @@ function LoggedInPage({ searchParams }) {
     markAllSpoodersRead(user.id);
   }, [user, page, loadTransactions]);
 
-  useEffect(() => {
-    if (!user) return;
-    const channel = db
-      .channel('spooders-page-' + user.id)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'spooder_transactions', filter: `user_id=eq.${user.id}` },
-        () => {
-          loadTransactions();
-          markAllSpoodersRead(user.id);
-        }
-      )
-      .subscribe();
-    return () => db.removeChannel(channel);
-  }, [user, loadTransactions]);
+  // useEffect(() => {
+  //   if (!user) return;
+  //   const channel = db
+  //     .channel('spooders-page-' + user.id)
+  //     .on(
+  //       'postgres_changes',
+  //       { event: 'INSERT', schema: 'public', table: 'spooder_transactions', filter: `user_id=eq.${user.id}` },
+  //       () => {
+  //         loadTransactions();
+  //         markAllSpoodersRead(user.id);
+  //       }
+  //     )
+  //     .subscribe();
+  //   return () => db.removeChannel(channel);
+  // }, [user, loadTransactions]);
 
   const totalPages = Math.ceil(total / PER_PAGE);
 
@@ -145,7 +140,7 @@ function LoggedInPage({ searchParams }) {
                       </div>
                     )}
                     <div className="notif_text">
-                      <span className="notif_date">{formatDate(tx.created_at)}:</span>{' '}
+                      <span className="notif_date">{formatDateNice(tx.created_at)}:</span>{' '}
                       <span style={{ color: isDebit ? 'red' : 'inherit' }}>
                         {isDebit
                           ? t('debit', { count: Math.abs(tx.amount) })

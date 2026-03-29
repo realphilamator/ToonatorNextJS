@@ -35,11 +35,50 @@ async function apiFetch(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  try {
-    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
+  const fullUrl = `${API_URL}${path}`;
+  const method = options.method || 'GET';
+
+  const res = await fetch(fullUrl, { ...options, headers });
+  if (!res.ok) return null;
+
+  const data = await res.json();
+
+  return data;
+}
+
+let _currentUserCache = null;
+
+async function getCurrentUser() {
+  const token = getToken();
+  if (!token) return null;
+
+  const payload = parseToken(token);
+  if (!payload) { removeToken(); return null; }
+
+  // Check token expiry
+  if (payload.exp && payload.exp * 1000 < Date.now()) {
+    removeToken();
+    _currentUserCache = null;
     return null;
   }
+
+  let profile;
+
+  if (!_currentUserCache) {
+    profile = await apiFetch("/profiles/me");
+    if (!profile) { removeToken(); _currentUserCache = null; return null; }
+    _currentUserCache = profile;
+  }
+  else {
+    profile = _currentUserCache;
+  }
+
+  return {
+    id: profile.id,
+    email: payload.email,
+    username: profile.username,
+    spiders: profile.spiders ?? 0,
+    avatar_toon: profile.avatar_toon,
+    role: profile.role,
+  };
 }

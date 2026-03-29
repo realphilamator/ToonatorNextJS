@@ -5,6 +5,7 @@ import UsernameLink from "@/components/UsernameLink";
 import UserAvatar from "@/components/UserAvatar";
 import { useAuth } from "@/hooks/auth";
 import { apiFetch, API_URL, getToken } from "@/lib/config";
+import { getCurrentUser} from "@/lib/api";
 
 const PALETTE = [
   "#000000","#0a0000","#140000","#1e0000","#280000","#320000","#3c0000","#460000",
@@ -76,8 +77,12 @@ export default function SettingsPage() {
     if (!user) { window.location.href = '/'; return; }
 
     async function load() {
-      const data = await apiFetch('/profiles/me');
-      if (!data) { window.location.href = '/'; return; }
+      const currentUser = await getCurrentUser();
+      if (!currentUser) { window.location.href = '/'; return; }
+      
+      // For settings page, we need the full profile data, so we'll fetch it directly
+      // but we can use the cached version from getCurrentUser if available
+      const data = currentUser;
       setProfile(data);
       setUsername(data.username);
       setBirthDate(data.birth_date || '');
@@ -123,6 +128,8 @@ export default function SettingsPage() {
       } else {
         setSettingsMsg({ type: 'ok', text: t('savedOk') });
         setTimeout(() => setSettingsMsg(null), 3000);
+        // Invalidate cache so next profile fetch gets updated data
+        invalidateCurrentUserCache();
       }
     } catch (err) {
       setSettingsMsg({ type: 'err', text: t('errorUnexpected', { error: err.message }) });
@@ -219,7 +226,7 @@ export default function SettingsPage() {
   const canPickColor = statusRaw === 'cowboy' || statusRaw === 'monarch';
   const isBoyar = statusRaw === 'monarch';
   const isPatreon = profile?.patreon_status === 'active';
-  const submitDisabled = submittingPromo || promoUsed >= 2 || hasPending;
+  const submitDisabled = true; //submittingPromo || promoUsed >= 2 || hasPending;
 
   if (loading || authLoading) return <div className="loading">{t('loading')}</div>;
 
@@ -311,7 +318,7 @@ export default function SettingsPage() {
                     t('promotion.noRequests')
                   )}
                 </div>
-                <textarea className="promotionTextarea" placeholder={t('promotion.placeholder')} value={promotionText} onChange={e => setPromotionText(e.target.value)} disabled={submitDisabled} />
+                <textarea className="promotionTextarea" placeholder={t('promotion.disabled')} value={promotionText} onChange={e => setPromotionText(e.target.value)} disabled={submitDisabled} />
                 <button className="promotionBtn" onClick={handlePromotion} disabled={submitDisabled}>
                   {submittingPromo ? t('promotion.sending') : t('promotion.sendButton')}
                 </button>

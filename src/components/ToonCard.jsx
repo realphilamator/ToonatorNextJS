@@ -6,13 +6,15 @@ import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LEGACY_BASE = "https://storage.m2inc.dev/retoon/legacyAnimations";
+const PREVIEW_BASE = "https://storage.m2inc.dev/retoon/previews";
 
 export default function ToonCard({
   toon,
   username,
   isOwnProfile = false,
   currentUserId = null,
-  inAlbum,
+  inAlbum = true,
   onAlbumToggle,
   commentCount: commentCountProp,
 }) {
@@ -25,6 +27,13 @@ export default function ToonCard({
 
   const isLegacy = !UUID_RE.test(toon.id);
   const toonHref = toon.is_draft ? `/draft/${toon.id}` : `/toon/${toon.id}`;
+
+  // ── Preview URL ──────────────────────────────────────────────────────────────
+  const previewSrc =
+    toon.preview_url ||
+    (isLegacy
+      ? `${LEGACY_BASE}/${toon.id}_100.gif`
+      : `${PREVIEW_BASE}/${toon.id}_100.gif`);
 
   // ── Comment count ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -88,7 +97,6 @@ export default function ToonCard({
     ? <> {continuedSymbol}{soundSymbol}</>
     : null;
 
-  // Extract just the unit word from the ICU plural string for the bold-number variant
   const frameUnit = frameCount === 1
     ? t("frames", { count: 1 }).replace("1", "").trim()
     : t("frames", { count: 2 }).replace("2", "").trim();
@@ -112,7 +120,7 @@ export default function ToonCard({
       <div className="toon_image">
         <Link href={toonHref} title={title}>
           <img
-            src={toon.preview_url}
+            src={previewSrc}
             width={200}
             height={100}
             alt={title}

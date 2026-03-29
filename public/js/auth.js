@@ -4,6 +4,7 @@
 
 let authMode = "login";
 
+
 // ============================================================
 // XSS helper
 // ============================================================
@@ -17,34 +18,7 @@ function escapeHTML(str) {
 // Current user — decoded from JWT + profile fetch
 // ============================================================
 
-let _currentUser = null;
 
-async function getCurrentUser() {
-  const token = getToken();
-  if (!token) return null;
-
-  const payload = parseToken(token);
-  if (!payload) { removeToken(); return null; }
-
-  // Check token expiry
-  if (payload.exp && payload.exp * 1000 < Date.now()) {
-    removeToken();
-    return null;
-  }
-
-  // Fetch full profile
-  const profile = await apiFetch("/profiles/me");
-  if (!profile) { removeToken(); return null; }
-
-  return {
-    id: profile.id,
-    email: payload.email,
-    username: profile.username,
-    spiders: profile.spiders ?? 0,
-    avatar_toon: profile.avatar_toon,
-    role: profile.role,
-  };
-}
 
 // ============================================================
 // Notification bell
@@ -92,7 +66,7 @@ function clearNotifyBell() {
 let _spidersPollInterval = null;
 
 window.updateSpidersBell = async function updateSpidersBell(userId) {
-  const data = await apiFetch("/spooders/unread-count");
+  const data = await apiFetch("/spiders/unread-count");
   const count = data?.count ?? 0;
 
   const spidersLi = document.getElementById("spiders");

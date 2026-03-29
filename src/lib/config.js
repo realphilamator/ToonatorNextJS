@@ -21,6 +21,19 @@ export function removeToken() {
 }
 
 /**
+ * Decode JWT payload without a library (base64url → JSON)
+ */
+export function parseToken(token) {
+  try {
+    const payload = token.split(".")[1];
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Main API fetch helper — use this instead of supabaseRequest
  */
 export async function apiFetch(path, options = {}) {
@@ -31,11 +44,17 @@ export async function apiFetch(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const fullUrl = `${API_URL}${path}`;
+  const method = options.method || 'GET';
+
+  const res = await fetch(fullUrl, {
     ...options,
     headers,
   });
 
   if (!res.ok) return null;
-  return res.json();
+
+  const data = await res.json();
+
+  return data;
 }

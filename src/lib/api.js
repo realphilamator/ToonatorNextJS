@@ -1,4 +1,4 @@
-import { apiFetch, API_URL, getToken } from "./config";
+import { apiFetch, API_URL, getToken, removeToken, parseToken } from "./config";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -19,6 +19,56 @@ export function formatDate(iso) {
   const hh = String(d.getHours()).padStart(2, "0");
   const min = String(d.getMinutes()).padStart(2, "0");
   return `${mm}/${dd}/${yyyy} ${hh}:${min}`;
+}
+
+export function formatDateNice(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+
+  const now = new Date();
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+
+  if (diffDays < 0) {
+    // Future date
+    if (diffDays === -1) return `tomorrow ${hh}:${min}`;
+    return `in ${Math.abs(diffDays)} days`;
+  }
+
+  if (diffDays === 0) {
+    return `${hh}:${min}`;
+  }
+
+  if (diffDays === 1) {
+    return `Yesterday ${hh}:${min}`;
+  }
+
+  if (diffDays < 7) {
+    return `${diffDays} days ago`;
+  }
+
+  if (diffDays < 14) {
+    return "1 week ago";
+  }
+
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} week${weeks > 1 ? "s" : ""} ago`;
+  }
+
+  if (diffDays < 365) {
+    const months = Math.floor(diffDays / 30);
+    return `${months} month${months > 1 ? "s" : ""} ago`;
+  }
+
+  const years = Math.floor(diffDays / 365);
+  return `${years} year${years > 1 ? "s" : ""} ago`;
 }
 
 // ── Profile ───────────────────────────────────────────────────────────────────
@@ -65,6 +115,7 @@ export async function updateUserAvatar(username, toonId) {
   const data = await apiFetch("/profiles/me", {
     method: "PATCH",
     body: JSON.stringify({ avatar_toon: toonId }),
+    skipCache: true
   });
   return { error: data ? null : "Failed to update avatar", success: !!data };
 }
@@ -107,6 +158,52 @@ export async function getUserIconData(username) {
   const data = await apiFetch(`/profiles/${encodeURIComponent(username)}`);
   if (!data) return { patreon_status: "inactive", nick_icon: null };
   return { patreon_status: data.patreon_status ?? "inactive", nick_icon: data.nick_icon ?? null };
+}
+
+let _currentUserCache = null;
+
+export async function getCurrentUser() {
+  const token = getToken();
+  if (!token) return null;
+
+  const payload = parseToken(token);
+  if (!payload) { removeToken(); return null; }
+
+  // Check token expiry
+  if (payload.exp && payload.exp * 1000 < Date.now()) {
+    removeToken();
+    _currentUserCache = null;
+    return null;
+  }
+
+  // ✅ USE CACHE FIRST
+  if (_currentUserCache) {
+    return formatUser(_currentUserCache, payload);
+  }
+
+  // ❗ Only fetch if no cache
+  const profile = await apiFetch("/profiles/me");
+  if (!profile) {
+    removeToken();
+    _currentUserCache = null;
+    return null;
+  }
+
+  _currentUserCache = profile;
+
+  return formatUser(profile, payload);
+}
+
+// helper to avoid duplication
+function formatUser(profile, payload) {
+  return {
+    id: profile.id,
+    email: payload.email,
+    username: profile.username,
+    spiders: profile.spiders ?? 0,
+    avatar_toon: profile.avatar_toon,
+    role: profile.role,
+  };
 }
 
 // ── Home page ─────────────────────────────────────────────────────────────────
@@ -235,13 +332,13 @@ export function describeSpooderTransaction(t, tSources) {
 }
 
 export async function getSpooderTransactions(userId, page = 1, perPage = 20) {
-  const data = await apiFetch(`/spooders/transactions?page=${page}&perPage=${perPage}`);
+  const data = await apiFetch(`/spiders/transactions?page=${page}&perPage=${perPage}`);
   return { transactions: data?.transactions ?? [], total: data?.total ?? 0, error: null };
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
 
 export async function getNotifications(userId, page = 1, perPage = 20) {
-  const data = await apiFetch(`/notifications?limit=${perPage}&offset=${(page - 1) * perPage}`);
+  const data = await apiFetch(`/notifications?limit=${perPage}&offset=${(page - 1) * perPage}`, { skipCache: true });
   return { notifications: data ?? [], total: 0, error: null };
 }

@@ -4,6 +4,7 @@
     "frames": "{count, plural, one {# кадр} few {# кадра} other {# кадров}}"
   },
   "register": {
+    "code":"ru",
     "title": "Регистрация",
     "usernameLabel": "Имя пользователя:",
     "usernamePlaceholder": "Буквы, цифры, _ или -",
@@ -14,7 +15,12 @@
     "passwordMatchError": "пароли не совпадают",
     "emailLabel": "E-mail:",
     "emailError": "не введён email",
-    "registerButton": "Регистрация"
+    "registerButton": "Регистрация",
+    "registeringButton": "Регистрация…",
+    "verifyTitle": "Check your email",
+    "verifyMessage": "We've sent a verification link to:",
+    "verifySubtext": "Click the link in the email to activate your account. It expires in 24 hours.",
+    "continueButton": "Continue to site"
   },
   "spiders": {
     "titleLoggedOut": "Паучки",
@@ -29,7 +35,7 @@
     "buyLink": "Купить паучков.",
     "noActivity": "История паучков пока пуста.",
     "debit": "-{count, plural, one {# паучок} few {# паучка} other {# паучков}}",
-    "credit": "{count, plural, one {# паучок} few {# паучка} other {# паучков}}",
+    "credit": "+{count, plural, one {# паучок} few {# паучка} other {# паучков}}",
     "earnTitle": "Как заработать паучков?",
     "earnIntro": "Паучки даются за активное участие в жизни Мультатора.",
     "earnItem1": "Мульт на тему дня.",
@@ -219,9 +225,12 @@
     "title": "Последние события",
     "empty": "Уведомлений пока нет.",
     "pleaseLogIn": "Пожалуйста, войдите в аккаунт.",
-    "reason_like": "<link>{actor}</link> понравился ваш мульт",
-    "reason_comment": "<link>{actor}</link> прокомментировал ваш мульт",
-    "reason_unknown": "{reason}"
+    "reasons": {
+      "like": " понравился ваш мульт",
+      "comment": " прокомментировал ваш мульт",
+      "comment_quare": " прокомментировал ваш мульт :) 🍓",
+      "comment_mention": " упомянул вас в комментарии"
+    }
   },
   "goodPlace": {
     "title": "Козырное место",
@@ -352,7 +361,8 @@
       "errorLimit": "За этот месяц вы уже подали 2 заявки на повышение ранга.",
       "errorPending": "Одна из ваших заявок уже находится на рассмотрении.",
       "successMsg": "Заявка отправлена! Модераторы рассмотрят её в течение 24 часов.",
-      "errorSubmit": "Ошибка при отправке: {error}"
+      "errorSubmit": "Ошибка при отправке: {error}",
+      "disabled": "На данный момент повышения не работают!"
     },
     "nickColor": {
       "title": "Цвет ника",

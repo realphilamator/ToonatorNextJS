@@ -9,6 +9,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function UserPage({ params }) {
+  console.log(`Loading profile page for ${params.username}`);
   const { username: rawUsername } = await params;
   const username = decodeURIComponent(rawUsername);
 

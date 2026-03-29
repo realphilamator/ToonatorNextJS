@@ -251,6 +251,9 @@ function canvasToBlob(canvas, type = 'image/gif') {
 
 /* =====================================================
    SAVE ANIMATION
+   - If window.DRAFT_ID is set, deletes the old draft
+     after the new toon is saved successfully
+   - If window.CONTINUE_ID is set, sets continued_from
 ===================================================== */
 
 async function saveAnimation() {
@@ -266,7 +269,6 @@ async function saveAnimation() {
   status.textContent = 'Saving...';
 
   try {
-    // Check auth
     const token = getToken();
     if (!token) throw new Error('You must be logged in to save.');
 
@@ -293,11 +295,12 @@ async function saveAnimation() {
       frame_count:       frames.length,
     };
 
+    // Set continued_from for regular continues (not drafts)
     if (window.CONTINUE_ID && /^[a-zA-Z0-9_-]{1,100}$/.test(window.CONTINUE_ID)) {
       insertData.continued_from = window.CONTINUE_ID;
     }
 
-    // Save animation to backend
+    // Save new animation
     const saveRes = await fetch(`${API_URL}/animations`, {
       method: 'POST',
       headers: {
@@ -314,9 +317,18 @@ async function saveAnimation() {
 
     const anim = await saveRes.json();
 
+    // Delete old draft if this was a draft edit
+    if (window.DRAFT_ID && /^[a-zA-Z0-9_-]{1,100}$/.test(window.DRAFT_ID)) {
+      await fetch(`${API_URL}/animations/${window.DRAFT_ID}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      }).catch(err => console.warn('[save] Failed to delete old draft:', err));
+    }
+
     status.textContent = 'Generating previews...';
 
-    const [blob200, blob40] = await Promise.all([
+    const [blob600, blob200, blob40] = await Promise.all([
+      generateGif(600, 300),
       generateGif(200, 100),
       generateGif(40,  20),
     ]);
@@ -324,7 +336,8 @@ async function saveAnimation() {
     status.textContent = 'Uploading previews...';
 
     const formData = new FormData();
-    formData.append('file200', blob200, `${anim.id}_100.gif`);
+    formData.append('file600', blob600, `${anim.id}_600.gif`);
+    formData.append('file200', blob200, `${anim.id}_200.gif`);
     formData.append('file40',  blob40,  `${anim.id}_40.gif`);
 
     const previewRes = await fetch(`${API_URL}/uploads/preview?toonId=${anim.id}`, {
@@ -334,7 +347,6 @@ async function saveAnimation() {
     });
 
     if (!previewRes.ok) {
-      // Animation saved but preview failed — not fatal, just warn
       console.warn('[save] Preview upload failed, animation still saved');
     }
 

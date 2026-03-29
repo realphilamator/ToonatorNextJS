@@ -260,28 +260,6 @@ canvas {
   filter: invert(10%) sepia(100%) saturate(5000%) hue-rotate(210deg) brightness(80%);
 }
 
-#btnAdd {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  left: 11px;
-  top: 3px;
-  cursor: pointer;
-  background: url('./graphics/addFrame.svg') no-repeat center center;
-  background-size: 100% 100%;
-}
-
-#btnDelete {
-  position: absolute;
-  width: 24px;
-  height: 24px;
-  left: 45px;
-  top: 3px;
-  background: rgba(0,0,0,0.5);
-  z-index: 9998;
-  align-items: center;
-  justify-content: center;
-}
 #settingsOverlay.open {
   display: flex;
 }

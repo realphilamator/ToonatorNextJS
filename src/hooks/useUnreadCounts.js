@@ -14,7 +14,7 @@ export function useUnreadCounts(userId) {
 
   const fetchUnreadSpooders = useCallback(async () => {
     if (!userId) return;
-    const data = await apiFetch("/spooders/unread-count");
+    const data = await apiFetch("/spiders/unread-count");
     setUnreadSpooders(data?.count ?? 0);
   }, [userId]);
 

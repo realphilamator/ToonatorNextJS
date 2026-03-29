@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { getToken, setToken, removeToken, apiFetch, API_URL } from "@/lib/config";
+import { getCurrentUser } from "@/lib/api";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
 export function useAuth() {
@@ -11,8 +12,8 @@ export function useAuth() {
   const { unreadNotifications, unreadSpooders } = useUnreadCounts(user?.id ?? null);
 
   async function fetchSpiders(userId) {
-    const data = await apiFetch(`/profiles/me`);
-    setSpiders(data?.spiders ?? 0);
+    const user = await getCurrentUser();
+    setSpiders(user?.spiders ?? 0);
   }
 
   async function loadUser() {
@@ -23,7 +24,7 @@ export function useAuth() {
       return;
     }
 
-    const data = await apiFetch("/profiles/me");
+    const data = await getCurrentUser();
     if (data) {
       setUser({ id: data.id, user_metadata: { username: data.username, avatar_toon: data.avatar_toon } });
       setSpiders(data.spiders ?? 0);
@@ -58,11 +59,11 @@ export function useAuth() {
     return { error: null };
   }
 
-  async function signUp(email, password, username) {
+  async function signUp(email, password, username, lang="en") {
     const res = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, username }),
+      body: JSON.stringify({ email, password, username, lang }),
     });
     const data = await res.json();
     if (!res.ok) return { error: data.error };

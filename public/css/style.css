@@ -668,6 +668,21 @@ a.btn:hover {
     color: white;
 }
 
+
+/* Experimental: */
+
+.archive {
+    background: #3171d8;
+    color: white;
+}
+
+.archive .toon_name a,
+.archive .toon_tagline,
+.archive .toon_tagline a{
+    color: white;
+}
+
+/**/
 .likes_count, .views_count {
     font-family: ToonatorFont;
     font-size: 11pt;

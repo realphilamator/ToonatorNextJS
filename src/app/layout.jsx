@@ -15,6 +15,8 @@ export default async function RootLayout({ children }) {
         <link rel="shortcut icon" href="/img/favicon-eyes.png" />
         <link rel="stylesheet" href="/css/style.css" />
         <link rel="stylesheet" href="/css/font.css" />
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5527734260417462"
+          crossorigin="anonymous"></script>
         <link rel="stylesheet" href={locale === 'ru' ? '/css/images_ru.css' : '/css/images.css'} />
         <script src="/js/config.js"defer></script>
         <script src="/js/auth.js" defer></script>

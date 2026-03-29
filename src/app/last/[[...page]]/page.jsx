@@ -1,33 +1,29 @@
-// app/last/[[...page]]/page.jsx
 import Link from "next/link";
 import { getTranslations } from 'next-intl/server';
 import ToonCard from "@/components/ToonCard";
 import UsernameLink from "@/components/UsernameLink";
 import { UrlPaginator } from "@/components/paginator";
-import { SUPABASE_URL } from "@/lib/config";
 import ToonLinkPreview from "@/components/ToonLinkPreview";
 import {
   resolveUsernames,
-  getLastToons,
+  getSandboxToons,
   getGoodPlaceCurrent,
   getLastComments,
 } from "@/lib/api";
 
-export async function generateMetadata() {
-  const t = await getTranslations('metadata.last');
-  return {
-    title: t('title'),
-    description: t('description'),
-  };
-}
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
+const PER_PAGE = 12;
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+export async function generateMetadata() {
+  const t = await getTranslations('metadata.sandbox');
+  return { title: t('title'), description: t('description') };
+}
 
 function LastCommentItem({ comment, index }) {
   const uname = comment.author_username || "unknown";
   const animId = String(comment.animation_id);
   const text = comment.text || "";
-  const thumbUrl = `${SUPABASE_URL}/storage/v1/object/public/previews/${animId}_100.gif`;
+  const thumbUrl = `${STORAGE_URL}/previews/${animId}_100.gif`;
 
   return (
     <div className={`comment${index % 2 !== 0 ? " gray" : ""} last_comments`}>
@@ -43,17 +39,13 @@ function LastCommentItem({ comment, index }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
-
-const PER_PAGE = 12;
-
-export default async function LastPage({ params }) {
-  const t = await getTranslations('last');
+export default async function SandboxPage({ params }) {
+  const t = await getTranslations('sandbox');
   const { page: pageSegment } = await params;
   const page = parseInt(pageSegment?.[0] || "1", 10);
 
-  const [{ toons, total }, goodPlace, lastComments] = await Promise.all([
-    getLastToons(page, PER_PAGE),
+  const [{ toons, total, commentCounts }, goodPlace, lastComments] = await Promise.all([
+    getSandboxToons(page, PER_PAGE),
     getGoodPlaceCurrent(),
     getLastComments(),
   ]);
@@ -66,14 +58,14 @@ export default async function LastPage({ params }) {
       <div id="content">
         <div className="content_left">
           <h1>
-            <a href="/last" className="nmenu selected">{t('oldschool')}</a>
+            <a href="/last" className="nmenu">{t('oldschool')}</a>
             {" | "}
-            <a href="/static" className="nmenu">{t('static')}</a>
+            <a href="/static" className="nmenu">{t('staticLabel')}</a>
             {" | "}
-            <a href="/sandbox" className="nmenu">{t('sandbox')}</a>
+            <a href="/sandbox" className="nmenu selected">{t('sandbox')}</a>
           </h1>
 
-          <UrlPaginator basePath="/last" currentPage={page} totalPages={totalPages} />
+          <UrlPaginator basePath="/sandbox" currentPage={page} totalPages={totalPages} />
 
           <div className="toons_container">
             <div className="toons_list">
@@ -87,17 +79,17 @@ export default async function LastPage({ params }) {
                     key={toon.id}
                     toon={toon}
                     username={userMap[toon.user_id]?.username || "unknown"}
+                    commentCount={commentCounts[toon.id] || 0}
                   />
                 ))
               )}
             </div>
           </div>
 
-          <UrlPaginator basePath="/last" currentPage={page} totalPages={totalPages} />
+          <UrlPaginator basePath="/sandbox" currentPage={page} totalPages={totalPages} />
         </div>
 
         <div className="content_right">
-          {/* ── Good Place ── */}
           <h1>
             <Link href="/goodplace/">
               {t('goodPlace')}{goodPlace ? ` (${goodPlace.bid_amount})` : ""}
@@ -108,11 +100,7 @@ export default async function LastPage({ params }) {
             <div className="toon_preview large owned">
               <div className="toon_image">
                 <Link href={`/toon/${goodPlace.toon.id}`} title={goodPlace.toon.title}>
-                  <img
-                    src={goodPlace.toon.preview_url}
-                    alt={goodPlace.toon.title}
-                    title={goodPlace.toon.title}
-                  />
+                  <img src={goodPlace.toon.preview_url} alt={goodPlace.toon.title} title={goodPlace.toon.title} />
                 </Link>
               </div>
               <div className="toon_name">
@@ -129,7 +117,6 @@ export default async function LastPage({ params }) {
             <div id="good-place-toon" />
           )}
 
-          {/* ── Last comments ── */}
           <h1>{t('lastComments')}</h1>
           <div id="last-comments">
             {lastComments.map((comment, i) => (

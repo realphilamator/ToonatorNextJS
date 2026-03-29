@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getTranslations } from 'next-intl/server';
 import ToonCard from "@/components/ToonCard";
 import { UrlPaginator } from "@/components/paginator";
-import { SUPABASE_URL } from "@/lib/config";
 import ToonLinkPreview from "@/components/ToonLinkPreview";
 import UsernameLink from "@/components/UsernameLink";
 import { resolveUsernames, getFeaturedToon, getLastComments, getPopularWeek } from "@/lib/api";
@@ -12,6 +11,8 @@ export async function generateMetadata() {
   const t = await getTranslations('metadata.popularWeek');
   return { title: t('title') };
 }
+
+const SUPABASE_URL = "https://example.com"
 
 export default async function PopularWeekPage({ params }) {
   const t = await getTranslations('popular');
@@ -123,21 +124,26 @@ export async function PopularSidebar({ featuredToon, featuredUsername, lastComme
         {lastComments.map((comment, i) => {
           const uname = comment.author_username || "unknown";
           const animId = String(comment.animation_id);
+
+          const raw = comment.text || "";
+          const limit_comment_length = 30;
+          const comment_text_limited = raw.length > limit_comment_length ? raw.slice(0, limit_comment_length) + "…" : raw;
+
           return (
             <div key={comment.id ?? i} className={`comment${i % 2 !== 0 ? " gray" : ""} last_comments`}>
               <div className="avatar">
                 <Link href={`/toon/${animId}`}>
                   <img
-                    src={`${SUPABASE_URL}/storage/v1/object/public/previews/${animId}_100.gif`}
+                    src={`https://storage.m2inc.dev/retoon/previews/${animId}_100.gif`}
                     width={80}
-                    alt=""
+                    alt={``}
                   />
                 </Link>
               </div>
               <div className="head">
                 <UsernameLink username={uname} />
                 {": "}
-                <ToonLinkPreview text={comment.text || ""} />
+                <ToonLinkPreview text={comment_text_limited} />
               </div>
             </div>
           );

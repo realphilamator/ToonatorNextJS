@@ -8,8 +8,9 @@ import UserAvatar from "@/components/UserAvatar";
 import ToonLinkPreview from "@/components/ToonLinkPreview";
 import { extractMentions } from "@/lib/mentions";
 import { apiFetch, API_URL, getToken } from "@/lib/config";
+import { getCurrentUser } from "@/lib/api";
 
-const STORAGE_URL = 'https://storage.m2inc.dev/ReToon';
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
 
 function ToonBanner() {
   return (
@@ -30,6 +31,7 @@ function formatDate(iso) {
 }
 
 function resolveFrames(toon) {
+  console.log("Test");
   if (toon.frames_compressed) {
     try {
       const binary = atob(toon.frames_compressed);
@@ -42,10 +44,13 @@ function resolveFrames(toon) {
     }
   }
   if (toon.frames) {
-    return Array.isArray(toon.frames) ? toon.frames : Object.values(toon.frames);
+  try {
+    const parsed = typeof toon.frames === 'string' ? JSON.parse(toon.frames) : toon.frames;
+    return Array.isArray(parsed) ? parsed : Object.values(parsed);
+  } catch {
+    return [];
   }
-  return [];
-}
+}}
 
 function ToonPlayer({ frames, settings }) {
   const containerRef = useRef(null);
@@ -204,15 +209,19 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
   const commentTextareaRef = useRef(null);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) { setAuthLoading(false); return; }
-    apiFetch('/profiles/me').then(data => {
-      if (data) {
-        setCurrentUser({ id: data.id, user_metadata: { username: data.username, avatar_toon: data.avatar_toon } });
+    async function loadUser() {
+      const token = getToken();
+      if (!token) { setAuthLoading(false); return; }
+      
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser({ id: user.id, user_metadata: { username: user.username, avatar_toon: user.avatar_toon } });
         apiFetch(`/likes/${toonId}/check`).then(d => { if (d?.liked) setLiked(true); });
       }
       setAuthLoading(false);
-    });
+    }
+    
+    loadUser();
   }, [toonId]);
 
   useEffect(() => {
@@ -233,7 +242,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
       }
     });
 
-    const framesReady = fetch(`${API_URL}/animations/${toonId}/frames`, {
+    const framesReady = fetch(`${API_URL}/animations/${toonId}`, {
       headers: { Authorization: `Bearer ${getToken()}` }
     }).then(r => r.ok ? r.json() : null).then(data => {
       if (cancelled || !data) return [];
@@ -299,7 +308,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
 
     const data = await apiFetch(`/comments/${toonId}`, {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ comment: { text }, author_uuid: author.id , author_username: author.username }),
     });
 
     if (!data) {

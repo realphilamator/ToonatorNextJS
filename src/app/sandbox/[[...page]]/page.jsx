@@ -3,7 +3,6 @@ import { getTranslations } from 'next-intl/server';
 import ToonCard from "@/components/ToonCard";
 import UsernameLink from "@/components/UsernameLink";
 import { UrlPaginator } from "@/components/paginator";
-import { SUPABASE_URL } from "@/lib/config";
 import ToonLinkPreview from "@/components/ToonLinkPreview";
 import {
   resolveUsernames,
@@ -11,6 +10,9 @@ import {
   getGoodPlaceCurrent,
   getLastComments,
 } from "@/lib/api";
+
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
+const PER_PAGE = 12;
 
 export async function generateMetadata() {
   const t = await getTranslations('metadata.sandbox');
@@ -21,7 +23,7 @@ function LastCommentItem({ comment, index }) {
   const uname = comment.author_username || "unknown";
   const animId = String(comment.animation_id);
   const text = comment.text || "";
-  const thumbUrl = `${SUPABASE_URL}/storage/v1/object/public/previews/${animId}_100.gif`;
+  const thumbUrl = `${STORAGE_URL}/previews/${animId}_100.gif`;
 
   return (
     <div className={`comment${index % 2 !== 0 ? " gray" : ""} last_comments`}>
@@ -36,8 +38,6 @@ function LastCommentItem({ comment, index }) {
     </div>
   );
 }
-
-const PER_PAGE = 12;
 
 export default async function SandboxPage({ params }) {
   const t = await getTranslations('sandbox');
@@ -100,11 +100,7 @@ export default async function SandboxPage({ params }) {
             <div className="toon_preview large owned">
               <div className="toon_image">
                 <Link href={`/toon/${goodPlace.toon.id}`} title={goodPlace.toon.title}>
-                  <img
-                    src={goodPlace.toon.preview_url}
-                    alt={goodPlace.toon.title}
-                    title={goodPlace.toon.title}
-                  />
+                  <img src={goodPlace.toon.preview_url} alt={goodPlace.toon.title} title={goodPlace.toon.title} />
                 </Link>
               </div>
               <div className="toon_name">

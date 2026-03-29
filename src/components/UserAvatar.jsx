@@ -6,7 +6,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 function getAvatarUrl(avatarToonId, size) {
   if (!avatarToonId) return "/img/avatar100.gif";
-  return `https://storage.m2inc.dev/ReToon/previews/${avatarToonId}_${size}.gif`;
+  return `https://storage.m2inc.dev/retoon/previews/${avatarToonId}_${size}.gif`;
 }
 
 /**
@@ -34,6 +34,8 @@ export default function UserAvatar({ username, avatarToonId, size = 40, classNam
   apiFetch(`/profiles/${username}`).then((data) => {
     if (data?.avatar_toon) setSrc(getAvatarUrl(data.avatar_toon, size));
   });
+
+  console.log(`UserAvatar`);
 
   return (
     <img

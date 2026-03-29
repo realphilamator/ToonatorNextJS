@@ -5,7 +5,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const TOON_LINK_RE = /https?:\/\/(?:www\.)?toonator\.site\/toon\/([a-zA-Z0-9-]+)/g;
 
 function getToonPreviewUrl(toonId, size = 40) {
-  return `https://storage.m2inc.dev/ReToon/previews/${toonId}_${size}.gif`;
+  return `https://storage.m2inc.dev/retoon/previews/${toonId}_${size}.gif`;
 }
 
 function extractToonIdFromUrl(url) {
