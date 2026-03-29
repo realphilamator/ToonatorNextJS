@@ -1,4 +1,7 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL;
+export const API_URL = 
+  process.env.NEXT_PUBLIC_API_URL || 
+  process.env.API_URL || 
+  "https://api.m2inc.dev/retoon"; // hardcoded fallback
 
 if (!API_URL) {
   throw new Error("Missing NEXT_PUBLIC_API_URL environment variable.");

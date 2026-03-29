@@ -6,7 +6,7 @@ import { UrlPaginator } from "@/components/paginator";
 import ToonLinkPreview from "@/components/ToonLinkPreview";
 import {
   resolveUsernames,
-  getSandboxToons,
+  getLastToons,
   getGoodPlaceCurrent,
   getLastComments,
 } from "@/lib/api";
@@ -15,7 +15,7 @@ const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
 const PER_PAGE = 12;
 
 export async function generateMetadata() {
-  const t = await getTranslations('metadata.sandbox');
+  const t = await getTranslations('metadata.last');
   return { title: t('title'), description: t('description') };
 }
 
@@ -39,13 +39,13 @@ function LastCommentItem({ comment, index }) {
   );
 }
 
-export default async function SandboxPage({ params }) {
-  const t = await getTranslations('sandbox');
+export default async function LastPage({ params }) {
+  const t = await getTranslations('last');
   const { page: pageSegment } = await params;
   const page = parseInt(pageSegment?.[0] || "1", 10);
 
   const [{ toons, total, commentCounts }, goodPlace, lastComments] = await Promise.all([
-    getSandboxToons(page, PER_PAGE),
+    getLastToons(page, PER_PAGE),
     getGoodPlaceCurrent(),
     getLastComments(),
   ]);
@@ -58,14 +58,14 @@ export default async function SandboxPage({ params }) {
       <div id="content">
         <div className="content_left">
           <h1>
-            <a href="/last" className="nmenu">{t('oldschool')}</a>
+            <a href="/last" className="nmenu selected">{t('oldschool')}</a>
             {" | "}
             <a href="/static" className="nmenu">{t('staticLabel')}</a>
             {" | "}
-            <a href="/sandbox" className="nmenu selected">{t('sandbox')}</a>
+            <a href="/sandbox" className="nmenu">{t('sandbox')}</a>
           </h1>
 
-          <UrlPaginator basePath="/sandbox" currentPage={page} totalPages={totalPages} />
+          <UrlPaginator basePath="/last" currentPage={page} totalPages={totalPages} />
 
           <div className="toons_container">
             <div className="toons_list">
@@ -86,7 +86,7 @@ export default async function SandboxPage({ params }) {
             </div>
           </div>
 
-          <UrlPaginator basePath="/sandbox" currentPage={page} totalPages={totalPages} />
+          <UrlPaginator basePath="/last" currentPage={page} totalPages={totalPages} />
         </div>
 
         <div className="content_right">
