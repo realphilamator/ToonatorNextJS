@@ -378,13 +378,13 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
 
             <div className="prizes" />
             <div className="buttons">
-              {currentUser && author.username !== currentUser.user_metadata?.username && (
+              {/* {currentUser && author.username !== currentUser.user_metadata?.username && (
                 <div className="toonmedals">
                   <a href="#" className="hover" onClick={e => { e.preventDefault(); alert('Coming Soon'); }}>
                     <img src="/img/1.gif" className="img_toonmedal" /><span>{tp('medals')}</span>
                   </a>
                 </div>
-              )}
+              )} */}
               <div className="like hover">
                 <a href="#" onClick={handleLike} className={`hover${liked ? " active" : ""}`} id="like_link">
                   <img src="/img/1.gif" className="img_like" />
@@ -402,7 +402,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
                   <img src="/img/1.gif" className="img_pencil" /><span>{tp('continue')}</span>
                 </a>
               </div>
-              {currentUser && author.username === currentUser.user_metadata?.username && (
+              {/* {currentUser && author.username === currentUser.user_metadata?.username && (
                 <div className="sound">
                   <a href="#" className="hover" onClick={e => { e.preventDefault(); alert('Coming Soon'); }}>
                     <img src="/img/1.gif" className="img_microphone" /><span>{tp('sound')}</span>
@@ -415,7 +415,7 @@ export default function ToonClient({ toonId, toon, author, continuedFrom, initia
                     <img src="/img/1.gif" className="img_more" /><span>{tp('more')}</span>
                   </a>
                 </div>
-              )}
+              )} */}
             </div>
 
             <div className="line_7"><img src="/img/1.gif" /></div>
