@@ -1237,54 +1237,82 @@ window.enablePalette = function() {
 }
 
 /* =====================================================
-   CONTINUE / LOAD
+   CONTINUE / DRAFT LOAD
+   Replaces the old Supabase-based loadContinue()
 ===================================================== */
 
 async function loadContinue() {
   const params = new URLSearchParams(window.location.search);
   const continueId = params.get('continue');
-  if (!continueId) return;
+  const draftId    = params.get('draft');
+  const loadId     = continueId || draftId;
 
-  window.CONTINUE_ID = continueId;
+  if (!loadId) return;
 
-  const { data, error } = await db
-    .from('animations')
-    .select('id, title, frames, description, keywords, is_draft')
-    .eq('id', continueId)
-    .single();
+  if (continueId) window.CONTINUE_ID = continueId;
+  if (draftId)    window.DRAFT_ID    = draftId;
 
-  if (error || !data) {
-    console.error('Failed to load animation:', error);
+  const res = await fetch(`${API_URL}/animations/${loadId}`, {
+    headers: { Authorization: `Bearer ${getToken()}` },
+  });
+
+  if (!res.ok) {
+    console.error('[loadContinue] Failed to fetch animation:', loadId);
     return;
   }
 
-  frames = Array.isArray(data.frames)
-    ? data.frames
-    : (data.frames ? Object.values(data.frames) : [{ strokes: [] }]);
+  const data = await res.json();
 
-  frameThumbs = [];
+  // Decompress frames if needed
+  let loadedFrames;
+  if (data.frames_compressed) {
+    try {
+      const binary = atob(data.frames_compressed);
+      const bytes  = Uint8Array.from(binary, c => c.charCodeAt(0));
+      const json   = pako.ungzip(bytes, { to: 'string' });
+      loadedFrames = JSON.parse(json);
+    } catch (err) {
+      console.error('[loadContinue] Failed to decompress:', err);
+      loadedFrames = [{ strokes: [] }];
+    }
+  } else if (data.frames) {
+    try {
+      const parsed = typeof data.frames === 'string' ? JSON.parse(data.frames) : data.frames;
+      loadedFrames = Array.isArray(parsed) ? parsed : Object.values(parsed);
+    } catch {
+      loadedFrames = [{ strokes: [] }];
+    }
+  } else {
+    loadedFrames = [{ strokes: [] }];
+  }
+
+  frames.length = 0;
+  loadedFrames.forEach(f => frames.push(f));
+
+  frameThumbs.length = 0;
   undoHistory = frames.map(() => []);
   redoHistory = frames.map(() => []);
   frames.forEach((_, i) => updateThumbnail(i));
 
-  currentFrame = 0;
-  previousFrame = -1;
+  currentFrame    = 0;
+  previousFrame   = -1;
   lastViewedFrame = -1;
-  onionHistory = [];
+  onionHistory    = [];
 
   updateSliderMax();
   render();
   drawFramesTimeline();
 
-  const nameEl = document.getElementById('saveDialogName');
-  const descEl = document.getElementById('saveDialogDesc');
-  const kwEl = document.getElementById('saveDialogKeywords');
+  // Pre-fill save dialog fields
+  const nameEl  = document.getElementById('saveDialogName');
+  const descEl  = document.getElementById('saveDialogDesc');
+  const kwEl    = document.getElementById('saveDialogKeywords');
   const draftEl = document.getElementById('saveDialogDraft');
 
-  if (nameEl) nameEl.value = data.title || '';
-  if (descEl) descEl.value = data.description || '';
-  if (kwEl) kwEl.value = data.keywords || '';
-  if (draftEl) draftEl.checked = data.is_draft || false;
+  if (nameEl)  nameEl.value  = data.title       || '';
+  if (descEl)  descEl.value  = data.description || '';
+  if (kwEl)    kwEl.value    = data.keywords     || '';
+  if (draftEl) draftEl.checked = draftId ? (data.is_draft || false) : false;
 }
 
 /* =====================================================

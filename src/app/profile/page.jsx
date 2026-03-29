@@ -1,10 +1,11 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+"use client";
+import { useState, useEffect } from "react";
 import { useTranslations } from 'next-intl';
-import UsernameLink from '@/components/UsernameLink';
+import UsernameLink from "@/components/UsernameLink";
 import UserAvatar from "@/components/UserAvatar";
-import { db } from '@/lib/config';
+import { useAuth } from "@/hooks/auth";
+import { apiFetch, API_URL, getToken } from "@/lib/config";
+import { getCurrentUser} from "@/lib/api";
 
 const PALETTE = [
   "#000000","#0a0000","#140000","#1e0000","#280000","#320000","#3c0000","#460000",
@@ -33,10 +34,9 @@ const PALETTE = [
   "#001433","#aabbcc","#8899aa","#667788","#445566","#223344","#112233","#001122",
 ];
 
-const SUPABASE_URL = 'https://ytyhhmwnnlkhhpvsurlm.supabase.co';
-
 export default function SettingsPage() {
   const t = useTranslations('settings');
+  const { user, loading: authLoading } = useAuth();
 
   const RANKS = {
     unknown_animal: { label: t('ranks.unknown_animal.label'), desc: t('ranks.unknown_animal.desc'), alts: ['Hamster', 'Chipmunk'], canApply: true },
@@ -52,7 +52,6 @@ export default function SettingsPage() {
   };
 
   const [profile, setProfile] = useState(null);
-  const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [birthDate, setBirthDate] = useState('');
   const [showBirthdate, setShowBirthdate] = useState('show');
@@ -66,101 +65,71 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [submittingPromo, setSubmittingPromo] = useState(false);
   const [username, setUsername] = useState('');
-  const [avatarSrc, setAvatarSrc] = useState('/img/avatar100.gif');
-  const [nickIconUrl,       setNickIconUrl]       = useState(null);
+  const [nickIconUrl, setNickIconUrl] = useState(null);
   const [nickIconUploading, setNickIconUploading] = useState(false);
-  const [nickIconMsg,       setNickIconMsg]       = useState(null);
-
-  // Promotion request state — loaded fresh from DB, not user_metadata
+  const [nickIconMsg, setNickIconMsg] = useState(null);
   const [promoUsed, setPromoUsed] = useState(0);
   const [lastPromoDate, setLastPromoDate] = useState(null);
   const [hasPending, setHasPending] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      if (!db) return;
-      const { data: { user } } = await db.auth.getUser();
-      if (!user) { window.location.href = '/'; return; }
-      const m = user.user_metadata || {};
-      const uname = m.username;
-      setUsername(uname);
-      setMeta(m);
-      const { data: profileData } = await db.from('profiles').select('*').eq('id', user.id).single();
-      setProfile(profileData);
-      setBirthDate(m.birth_date || '');
-      setShowBirthdate(m.show_birthdate || 'show');
-      setHideRank(m.hide_rank || false);
-      setSelectedColor(m.nick_color || '#005500');
-      setKofiUsername(profileData?.kofi_username || '');
-      setAltRank(m.alt_rank || '');
-      const avatarToon = m.avatar_toon ?? profileData?.avatar_toon;
-      if (avatarToon) setAvatarSrc(`${SUPABASE_URL}/storage/v1/object/public/previews/${avatarToon}_100.gif`);
-      setNickIconUrl(profileData?.nick_icon ?? null);
+    if (authLoading) return;
+    if (!user) { window.location.href = '/'; return; }
 
-      await loadPromoStats(db, user.id);
+    async function load() {
+      const currentUser = await getCurrentUser();
+      if (!currentUser) { window.location.href = '/'; return; }
+      
+      // For settings page, we need the full profile data, so we'll fetch it directly
+      // but we can use the cached version from getCurrentUser if available
+      const data = currentUser;
+      setProfile(data);
+      setUsername(data.username);
+      setBirthDate(data.birth_date || '');
+      setShowBirthdate(data.show_birthdate || 'show');
+      setHideRank(data.hide_rank || false);
+      setSelectedColor(data.nick_color || '#005500');
+      setKofiUsername(data.kofi_username || '');
+      setAltRank(data.alt_rank || '');
+      setNickIconUrl(data.nick_icon ?? null);
+
+      const stats = await apiFetch('/promotions/stats');
+      if (stats) {
+        setPromoUsed(stats.used);
+        setLastPromoDate(stats.lastDate);
+        setHasPending(stats.hasPending);
+      }
 
       setLoading(false);
     }
     load();
-  }, []);
-
-  async function loadPromoStats(db, userId) {
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-    const { count } = await db
-      .from('promotion_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .gte('submitted_at', oneMonthAgo.toISOString());
-
-    setPromoUsed(count ?? 0);
-
-    const { data: recentList } = await db
-      .from('promotion_requests')
-      .select('submitted_at, status')
-      .eq('user_id', userId)
-      .order('submitted_at', { ascending: false })
-      .limit(1);
-
-    const recent = recentList?.[0] ?? null;
-    if (recent) {
-      setLastPromoDate(new Date(recent.submitted_at).toLocaleDateString());
-      setHasPending(recent.status === 'pending');
-    }
-  }
+  }, [authLoading, user]);
 
   async function handleSubmit() {
     setSaving(true);
     setSettingsMsg(null);
     try {
       const updateData = {
-        birth_date: birthDate, 
+        birth_date: birthDate,
         show_birthdate: showBirthdate,
-        hide_rank: hideRank, 
-        alt_rank: altRank || null,
-      };
-      if (canPickColor) {
-        updateData.nick_color = selectedColor;
-      }
-      const { error: authError } = await db.auth.updateUser({ data: updateData });
-      const { data: { user } } = await db.auth.getUser();
-
-      const profileUpdate = { 
+        hide_rank: hideRank,
         kofi_username: kofiUsername || null,
         nick_icon: nickIconUrl,
       };
-      if (canPickColor) {
-        profileUpdate.nick_color = selectedColor;
-      }
-      const { error: profileError } = await db.from('profiles').update(profileUpdate).eq('id', user.id);
+      if (canPickColor) updateData.nick_color = selectedColor;
 
-      if (authError || profileError) {
-        setSettingsMsg({ type: 'err', text: t('errorSaving', { error: (authError || profileError).message }) });
+      const result = await apiFetch('/profiles/me/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(updateData),
+      });
+
+      if (!result) {
+        setSettingsMsg({ type: 'err', text: t('errorSaving', { error: 'Failed to save' }) });
       } else {
-        delete colorCache[username];
         setSettingsMsg({ type: 'ok', text: t('savedOk') });
         setTimeout(() => setSettingsMsg(null), 3000);
+        // Invalidate cache so next profile fetch gets updated data
+        invalidateCurrentUserCache();
       }
     } catch (err) {
       setSettingsMsg({ type: 'err', text: t('errorUnexpected', { error: err.message }) });
@@ -188,39 +157,25 @@ export default function SettingsPage() {
 
     setSubmittingPromo(true);
     setPromotionMsg(null);
-
     try {
-      const { data: { session } } = await db.auth.getSession();
-      if (!session?.access_token) throw new Error('Not logged in');
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/submit-promotion`, {
+      const result = await apiFetch('/promotions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
         body: JSON.stringify({ message: promotionText.trim() }),
       });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error ?? `Server error (${res.status})`);
-      }
-
+      if (!result) throw new Error('Failed to submit');
       setPromotionMsg({ type: 'ok', text: t('promotion.successMsg') });
       setPromotionText('');
-
-      const { data: { user } } = await db.auth.getUser();
-      await loadPromoStats(db, user.id);
+      const stats = await apiFetch('/promotions/stats');
+      if (stats) {
+        setPromoUsed(stats.used);
+        setLastPromoDate(stats.lastDate);
+        setHasPending(stats.hasPending);
+      }
     } catch (err) {
       setPromotionMsg({ type: 'err', text: t('promotion.errorSubmit', { error: err.message }) });
     }
-
     setSubmittingPromo(false);
   }
-
-  const EDGE_FN = `${SUPABASE_URL}/functions/v1/set-nick-icon`;
 
   async function handleIconUpload(e) {
     const file = e.target.files?.[0];
@@ -228,19 +183,15 @@ export default function SettingsPage() {
     setNickIconUploading(true);
     setNickIconMsg(null);
     try {
-      const { data: { session } } = await db.auth.getSession();
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(EDGE_FN, {
+      const res = await fetch(`${API_URL}/uploads/nick-icon`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${getToken()}` },
         body: form,
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Upload failed');
-
-      delete colorCache[username];
-      if (window.__nickIconCache) delete window.__nickIconCache[username];
       setNickIconUrl(json.url);
       setNickIconMsg({ type: 'ok', text: t('usernameIcon.iconSaved') });
       setTimeout(() => setNickIconMsg(null), 3000);
@@ -256,15 +207,8 @@ export default function SettingsPage() {
     setNickIconUploading(true);
     setNickIconMsg(null);
     try {
-      const { data: { session } } = await db.auth.getSession();
-      const res = await fetch(EDGE_FN, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Remove failed');
-      delete colorCache[username];
-      if (window.__nickIconCache) delete window.__nickIconCache[username];
+      const result = await apiFetch('/uploads/nick-icon', { method: 'DELETE' });
+      if (!result) throw new Error('Remove failed');
       setNickIconUrl(null);
       setNickIconMsg({ type: 'ok', text: t('usernameIcon.iconRemoved') });
       setTimeout(() => setNickIconMsg(null), 3000);
@@ -275,43 +219,29 @@ export default function SettingsPage() {
     }
   }
 
-  const rank = meta?.rank || profile?.rank || 'archeologist';
+  const rank = profile?.rank || 'archeologist';
   const rankDef = RANKS[rank] || RANKS['archeologist'];
-
-  const statusRaw = (profile?.status || meta?.status || 'ordinary').toLowerCase();
+  const statusRaw = (profile?.status || 'ordinary').toLowerCase();
   const statusLabel = STATUS_LABELS[statusRaw] ?? statusRaw;
-
   const canPickColor = statusRaw === 'cowboy' || statusRaw === 'monarch';
-
   const isBoyar = statusRaw === 'monarch';
-
   const isPatreon = profile?.patreon_status === 'active';
+  const submitDisabled = true; //submittingPromo || promoUsed >= 2 || hasPending;
 
-  const remaining = 2 - promoUsed;
-  const submitDisabled = submittingPromo || promoUsed >= 2 || hasPending;
-
-  if (loading) return <div className="loading">{t('loading')}</div>;
+  if (loading || authLoading) return <div className="loading">{t('loading')}</div>;
 
   return (
     <div id="content_wrap">
       <div id="content">
-        <div className={`userprofile wrap`}>
-
-          {/* SIDEBAR */}
-          <div className={`content_right sidebar`}>
+        <div className="userprofile wrap">
+          <div className="content_right sidebar">
             <div className="center">
               <h3 id="profile_username_wrap">
                 <UsernameLink username={username} />
               </h3>
             </div>
             <div className="center">
-              <div style={{ display: 'inline-block', textAlign: 'center' }}>
-                    <UserAvatar
-                        username={username}
-                        size={100}
-                        className="p200"
-                    />
-              </div>
+              <UserAvatar username={username} size={100} className="p200" />
             </div>
             <nav className="settingsNav">
               <ul className="leftmenu">
@@ -323,21 +253,16 @@ export default function SettingsPage() {
             </nav>
           </div>
 
-          {/* MAIN PANEL */}
-          <div className={`content_left panel`}>
+          <div className="content_left panel">
             <h1 className="pageTitle">{t('pageTitle')}</h1>
-            {settingsMsg && (
-              <div className={`msg ${settingsMsg.type}`}>{settingsMsg.text}</div>
-            )}
+            {settingsMsg && <div className={`msg ${settingsMsg.type}`}>{settingsMsg.text}</div>}
 
-            {/* ABOUT ME */}
             <section className="section">
               <h2 className="sectionTitle">{t('aboutMe.title')}</h2>
               <hr className="divider" />
               <div className="field">
                 <span className="label">{t('aboutMe.birthDate')}</span>
-                <input type="text" className="birthInput" placeholder="DD.MM.YYYY"
-                  value={birthDate} onChange={e => setBirthDate(e.target.value)} />
+                <input type="text" className="birthInput" placeholder="DD.MM.YYYY" value={birthDate} onChange={e => setBirthDate(e.target.value)} />
                 <select value={showBirthdate} onChange={e => setShowBirthdate(e.target.value)}>
                   <option value="show">{t('aboutMe.showBirthdate')}</option>
                   <option value="hide">{t('aboutMe.hideBirthdate')}</option>
@@ -346,7 +271,6 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            {/* RANK AND STATUS */}
             <section className="section">
               <h2 className="sectionTitle">{t('rankStatus.title')}</h2>
               <hr className="divider" />
@@ -364,28 +288,20 @@ export default function SettingsPage() {
                   <span>{t('rankStatus.displayAs')}</span>
                   <select value={altRank} onChange={e => setAltRank(e.target.value)}>
                     <option value="">{rankDef.label} {t('rankStatus.default')}</option>
-                    {rankDef.alts.map(alt => (
-                      <option key={alt} value={alt}>{alt}</option>
-                    ))}
+                    {rankDef.alts.map(alt => <option key={alt} value={alt}>{alt}</option>)}
                   </select>
-                  <span className="altRankNote">{t('rankStatus.monarchNote')}</span>
                 </div>
               )}
               <div className="checkbox">
-                <input type="checkbox" id="hide_rank"
-                  checked={hideRank} onChange={e => setHideRank(e.target.checked)} />
+                <input type="checkbox" id="hide_rank" checked={hideRank} onChange={e => setHideRank(e.target.checked)} />
                 <label htmlFor="hide_rank">{t('rankStatus.hideRank')}</label>
               </div>
               <div className="statusLine">
                 {t('rankStatus.statusLabel')}{' '}<span className="statusName">{statusLabel}</span>.{' '}
                 <a href="/wiki/statuses" target="_blank">{t('rankStatus.moreAboutStatus')}</a>
               </div>
-              {meta?.status_free_date && (
-                <div className="statusFreeLine">{meta.status_free_date}</div>
-              )}
             </section>
 
-            {/* RANK PROMOTION */}
             {rankDef.canApply && (
               <section className="section">
                 <h2 className="sectionTitle">{t('promotion.title')}</h2>
@@ -395,159 +311,81 @@ export default function SettingsPage() {
                 </div>
                 <div className="promotionCooldown">
                   {hasPending ? (
-                    <span style={{ color: '#e6a817' }}>
-                      {t('promotion.pending')}
-                    </span>
+                    <span style={{ color: '#e6a817' }}>{t('promotion.pending')}</span>
                   ) : lastPromoDate ? (
                     t('promotion.lastRequest', { date: lastPromoDate, used: promoUsed })
                   ) : (
                     t('promotion.noRequests')
                   )}
                 </div>
-                <textarea
-                  className="promotionTextarea"
-                  placeholder={t('promotion.placeholder')}
-                  value={promotionText}
-                  onChange={e => setPromotionText(e.target.value)}
-                  disabled={submitDisabled}
-                />
-                <button
-                  className="promotionBtn"
-                  onClick={handlePromotion}
-                  disabled={submitDisabled}
-                >
+                <textarea className="promotionTextarea" placeholder={t('promotion.disabled')} value={promotionText} onChange={e => setPromotionText(e.target.value)} disabled={submitDisabled} />
+                <button className="promotionBtn" onClick={handlePromotion} disabled={submitDisabled}>
                   {submittingPromo ? t('promotion.sending') : t('promotion.sendButton')}
                 </button>
-                {promotionMsg && (
-                  <div className={`msg ${promotionMsg.type} promoMsg`}>
-                    {promotionMsg.text}
-                  </div>
-                )}
+                {promotionMsg && <div className={`msg ${promotionMsg.type} promoMsg`}>{promotionMsg.text}</div>}
               </section>
             )}
 
-            {/* NICK COLOR — cowboy and monarch only */}
             <section className="section">
               <h2 className="sectionTitle">{t('nickColor.title')}</h2>
               <hr className="divider" />
               {canPickColor ? (
                 <>
-                  <div className="nickNote">
-                    {t('nickColor.cooldownNote')}
-                  </div>
-                  <div className="nickPreview">
-                    <span style={{ color: selectedColor }}>{username}</span>
-                  </div>
+                  <div className="nickNote">{t('nickColor.cooldownNote')}</div>
+                  <div className="nickPreview"><span style={{ color: selectedColor }}>{username}</span></div>
                   <div className="palette">
                     <div className="paletteGrid">
                       {PALETTE.map((color, i) => (
-                        <button key={`${color}-${i}`}
-                          className={`swatch ${selectedColor === color ? 'selected' : ''}`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                          onClick={() => setSelectedColor(color)}
-                        />
+                        <button key={`${color}-${i}`} className={`swatch ${selectedColor === color ? 'selected' : ''}`} style={{ backgroundColor: color }} title={color} onClick={() => setSelectedColor(color)} />
                       ))}
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="nickNote">
-                  {t('nickColor.notAllowed')}
-                </div>
+                <div className="nickNote">{t('nickColor.notAllowed')}</div>
               )}
             </section>
 
-            {/* USERNAME ICON — Patreon supporters only */}
             <section className="section">
               <h2 className="sectionTitle">{t('usernameIcon.title')}</h2>
               <hr className="divider" />
               {isPatreon ? (
                 <>
-                  <div className="nickNote">
-                    {t('usernameIcon.patreonNote')}
-                  </div>
+                  <div className="nickNote">{t('usernameIcon.patreonNote')}</div>
+                  {nickIconUrl ? (
+                    <div className="nickPreview">
+                      <span className="username withicon" style={{ background: `url(${nickIconUrl}) no-repeat`, backgroundSize: '16px' }}>{username}</span>
+                    </div>
+                  ) : (
+                    <div className="nickNote">{t('usernameIcon.noIcon')}</div>
+                  )}
                   <div className="field">
-                    {nickIconUrl ? (
-                      <div className="nickPreview">
-                        <span
-                          className="username withicon"
-                          style={{ background: `url(${nickIconUrl}) no-repeat`, backgroundSize: '16px' }}
-                        >
-                          {username}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="nickNote">{t('usernameIcon.noIcon')}</div>
-                    )}
-                  </div>
-                  <div className="field">
-                    <input
-                      id="nick_icon_upload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                      style={{ display: 'none' }}
-                      onChange={handleIconUpload}
-                      disabled={nickIconUploading}
-                    />
-                    <button
-                      disabled={nickIconUploading}
-                      onClick={() => document.getElementById('nick_icon_upload').click()}
-                    >
+                    <input id="nick_icon_upload" type="file" accept="image/png,image/jpeg,image/gif,image/webp" style={{ display: 'none' }} onChange={handleIconUpload} disabled={nickIconUploading} />
+                    <button disabled={nickIconUploading} onClick={() => document.getElementById('nick_icon_upload').click()}>
                       {nickIconUploading ? t('usernameIcon.uploading') : nickIconUrl ? t('usernameIcon.changeIcon') : t('usernameIcon.uploadIcon')}
                     </button>
                     {nickIconUrl && (
-                      <button
-                        style={{ marginLeft: 10 }}
-                        disabled={nickIconUploading}
-                        onClick={handleIconRemove}
-                      >
+                      <button style={{ marginLeft: 10 }} disabled={nickIconUploading} onClick={handleIconRemove}>
                         {t('usernameIcon.removeIcon')}
                       </button>
                     )}
                   </div>
-                  {nickIconMsg && (
-                    <div className={`msg ${nickIconMsg.type}`}>
-                      {nickIconMsg.text}
-                    </div>
-                  )}
+                  {nickIconMsg && <div className={`msg ${nickIconMsg.type}`}>{nickIconMsg.text}</div>}
                 </>
               ) : (
                 <div className="nickNote">
                   {t('usernameIcon.notPatreon')}{' '}
                   {profile?.patreon_user_id ? (
-                    // Connected but pledge is inactive / wrong tier
-                    <>
-                      <a
-                        href="https://www.patreon.com/ToonatorRevival/join"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {t('usernameIcon.upgradeLink')}
-                      </a>{' '}
-                      {t('usernameIcon.upgradeSuffix')}
-                    </>
+                    <a href="https://www.patreon.com/ToonatorRevival/join" target="_blank" rel="noopener noreferrer">{t('usernameIcon.upgradeLink')}</a>
                   ) : (
-                    // Not connected at all
-                    <>
-                      <button
-                        onClick={async () => {
-                          const { data: { session } } = await db.auth.getSession();
-                          if (!session?.access_token) { window.openAuth?.(); return; }
-                          const returnUrl = encodeURIComponent('https://www.patreon.com/ToonatorRevival/join');
-                          window.location.href = `/api/patreon/connect?token=${session.access_token}&return=${returnUrl}`;
-                        }}
-                      >
-                        {t('usernameIcon.connectPatreon')}
-                      </button>{' '}
-                      {t('usernameIcon.connectSuffix')}
-                    </>
+                    <button onClick={() => { window.location.href = `/api/patreon/connect`; }}>
+                      {t('usernameIcon.connectPatreon')}
+                    </button>
                   )}
                 </div>
               )}
             </section>
 
-            {/* SPOODERS & PATREON */}
             <section className="section">
               <h2 className="sectionTitle">{t('spoodersPatreon.title')}</h2>
               <hr className="divider" />
@@ -558,37 +396,30 @@ export default function SettingsPage() {
                 {profile?.patreon_user_id ? (
                   <>
                     <span style={{ color: 'green' }}>{t('spoodersPatreon.connected')}</span>
-                    <button
-                      style={{ marginLeft: 12 }}
-                      onClick={async () => {
-                        const { data: { user } } = await db.auth.getUser();
-                        await db.from('profiles').update({ patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }).eq('id', user.id);
-                        setProfile(p => ({ ...p, patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }));
-                      }}
-                    >
+                    <button style={{ marginLeft: 12 }} onClick={async () => {
+                      await apiFetch('/profiles/me/settings', {
+                        method: 'PATCH',
+                        body: JSON.stringify({ patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }),
+                      });
+                      setProfile(p => ({ ...p, patreon_user_id: null, patreon_status: 'inactive', patreon_tier: null }));
+                    }}>
                       {t('spoodersPatreon.disconnect')}
                     </button>
                   </>
                 ) : (
-                  <button className="complete" onClick={async () => {
-                    const { data: { session } } = await db.auth.getSession();
-                    if (!session?.access_token) { window.openAuth?.(); return; }
-                    window.location.href = `/api/patreon/connect?token=${session.access_token}`;
-                  }}>
+                  <button className="complete" onClick={() => { window.location.href = `/api/patreon/connect`; }}>
                     {t('spoodersPatreon.connect')}
                   </button>
                 )}
               </div>
             </section>
 
-            {/* SUBMIT */}
             <div className="submitRow">
               <button onClick={handleSubmit} disabled={saving}>
                 {saving ? t('saving') : t('submit')}
               </button>
             </div>
           </div>
-
         </div>
         <div style={{ clear: 'both' }} />
       </div>

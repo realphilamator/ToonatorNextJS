@@ -1,7 +1,6 @@
 // API Module - Centralized Supabase and data fetching logic
 
-import { db } from "/js/config.js";
-
+const db = null;
 // ============================================================
 // Configuration Constants
 // ============================================================

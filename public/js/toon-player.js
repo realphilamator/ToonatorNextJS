@@ -452,6 +452,7 @@
     const toonCanvas = document.createElement('canvas');
     toonCanvas.width  = BORDER_W;
     toonCanvas.height = BORDER_H;
+    toonCanvas.id = "toon";
     toonCanvas.style.cssText = [
       'display:block','position:absolute','top:0','left:0',
       'width:100%','max-width:'+BORDER_W+'px','background:#fff',
@@ -503,6 +504,26 @@
     let isFullscreen    = false;
     let isExpanded      = false;
     let currentScale    = 1; // updated when entering/exiting fullscreen
+
+    // Expose curFrame to console for debugging
+    window.toonDebug = {
+      get curFrame() { return curFrame; },
+      set curFrame(n) {
+      if (n >= frameCount) {
+        console.error(`toon-player: frame ${n} out of range (0-${frameCount - 1})`);
+        return;
+      }
+      stopPlay();
+      const step = Math.max(0, Math.min(n, frameCount - 1));
+      curFrame = step;
+      renderToon();
+      syncSlider();
+      },
+      get fps() { return fps; },
+      get frameCount() { return frameCount; }
+    };
+
+
 
     let btnIsOver = false;
     let fsIsOver  = false;

@@ -2,13 +2,13 @@
 import { use, useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/auth';
-import { getNotifications } from '@/lib/api';
+import { getNotifications, formatDate , formatDateNice} from '@/lib/api';
+import { apiFetch } from '@/lib/config';
 import Paginator from '@/components/paginator';
-import { formatDate } from '@/lib/api';
-import { SUPABASE_URL, db } from '@/lib/config';
 import UsernameLink from '@/components/UsernameLink';
 
 const PER_PAGE = 20;
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
 
 function isLegacyId(id) {
   return id && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -17,11 +17,17 @@ function isLegacyId(id) {
 function getThumbnailUrl(toonId) {
   if (!toonId) return null;
   const bucket = isLegacyId(toonId) ? 'legacyAnimations' : 'previews';
-  return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${toonId}_100.gif`;
+  return `${STORAGE_URL}/${bucket}/${toonId}_100.gif`;
 }
 
-// Parse "user1, user2, user3 liked your toon" → actors: ["user1","user2","user3"], suffix: " liked your toon"
 function parseReason(reason) {
+  console.log(reason);
+
+  if (reason?.startsWith('$TRANS')) { // Translation key
+      const key = JSON.parse(reason.slice(6));
+    return { actors: [key[1]], tcode: key[0] }
+  } // Old format: "Alice liked your toon"
+
   const suffixes = [' liked your toon', ' commented on your toon'];
   for (const suffix of suffixes) {
     if (reason.endsWith(suffix)) {
@@ -29,18 +35,15 @@ function parseReason(reason) {
       const actors = actorsPart.split(', ').map(s => s.trim()).filter(Boolean);
       return { actors, suffix };
     }
-  }
-  // Fallback: grab first word as actor
+ }
   const match = reason.match(/^(\S+)/);
   return { actors: match ? [match[1]] : [], suffix: reason.slice(match?.[1]?.length ?? 0) };
+
 }
 
-// Render the text of a mention notification, turning the from_username into a UsernameLink.
-// message format: "username mentioned you in a comment."
 function MentionText({ notification }) {
   const { from_username, message } = notification;
   if (!from_username || !message) return <span>{message || 'mentioned you'}</span>;
-  // Split message on the username so we can linkify just that part
   const idx = message.indexOf(from_username);
   if (idx === -1) return <span>{message}</span>;
   const before = message.slice(0, idx);
@@ -50,6 +53,14 @@ function MentionText({ notification }) {
       {before}<UsernameLink username={from_username} />{after}
     </span>
   );
+}
+
+async function markAllRead() {
+  await apiFetch('/notifications/mark-all-read', { method: 'PATCH' });
+  const notifyA = document.querySelector('#notify > a');
+  const notifyCounter = document.querySelector('#notify .counter');
+  if (notifyA) notifyA.classList.remove('active');
+  if (notifyCounter) notifyCounter.textContent = '';
 }
 
 export default function NotificationsPage({ searchParams }) {
@@ -69,56 +80,17 @@ export default function NotificationsPage({ searchParams }) {
     });
   }, [user]);
 
-  async function markAllRead(userId) {
-    await db
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', userId)
-      .eq('is_read', false);
-    const notifyA = document.querySelector('#notify > a');
-    const notifyCounter = document.querySelector('#notify .counter');
-    if (notifyA) notifyA.classList.remove('active');
-    if (notifyCounter) notifyCounter.textContent = '';
-  }
-
   useEffect(() => {
     if (!user) return;
     loadNotifications(page);
-    markAllRead(user.id);
+    markAllRead();
   }, [user, page, loadNotifications]);
 
+  // Poll for new notifications every 30s instead of realtime subscription
   useEffect(() => {
     if (!user) return;
-    const channel = db
-      .channel('notifications-page-' + user.id)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          loadNotifications(page);
-          markAllRead(user.id);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          loadNotifications(page);
-        }
-      )
-      .subscribe();
-
-    return () => db.removeChannel(channel);
+    const interval = setInterval(() => loadNotifications(page), 30000);
+    return () => clearInterval(interval);
   }, [user, page, loadNotifications]);
 
   const totalPages = Math.ceil(total / PER_PAGE);
@@ -139,12 +111,10 @@ export default function NotificationsPage({ searchParams }) {
             </div>
           ) : (
             notifications.map((n, i) => {
-              const thumbUrl = getThumbnailUrl(n.toon_id);
+              const thumbUrl = n.toon_id.startsWith('https://') ? n.toon_id : getThumbnailUrl(n.toon_id);
               const isMention = n.type?.startsWith('mention_');
 
-              // ── Mention notifications use from_username + message directly ──
               if (isMention) {
-                // For comment mentions, link to the toon; toon mentions link to the toon too
                 const href = n.toon_id ? `/toon/${n.toon_id}` : null;
                 return (
                   <div key={n.id} className={`notif_row${i % 2 === 0 ? ' gray' : ''}`}>
@@ -156,7 +126,7 @@ export default function NotificationsPage({ searchParams }) {
                       )}
                     </div>
                     <div className="notif_text">
-                      <span className="notif_date">{formatDate(n.created_at)}:</span>{' '}
+                      <span className="notif_date">{formatDateNice(n.created_at)}:</span>{' '}
                       <MentionText notification={n} />
                       {href && (
                         <> <a href={href} style={{ color: '#888', fontSize: '9pt' }}>→</a></>
@@ -166,14 +136,17 @@ export default function NotificationsPage({ searchParams }) {
                 );
               }
 
-              // ── Like / comment notifications (existing behaviour) ──
-              const { actors, suffix } = parseReason(n.reason);
+              const { actors, suffix, tcode } = parseReason(n.reason);
               const actorNodes = actors.map((name, idx) => (
                 <span key={name}>
                   {idx > 0 && (idx === actors.length - 1 ? ' and ' : ', ')}
                   <UsernameLink username={name} />
                 </span>
               ));
+
+              const rawText = tcode ? t("reasons." + tcode) : suffix || '';
+              const limitedText = rawText.length > 50 ? `${rawText.slice(0,50)}...` : rawText;
+              
 
               return (
                 <div key={n.id} className={`notif_row${i % 2 === 0 ? ' gray' : ''}`}>
@@ -185,9 +158,10 @@ export default function NotificationsPage({ searchParams }) {
                     )}
                   </div>
                   <div className="notif_text">
-                    <span className="notif_date">{formatDate(n.created_at)}:</span>{' '}
+                    <span className="notif_date">{formatDateNice(n.created_at)}:</span>{' '}
                     {actorNodes}
                     {suffix}
+                    {tcode && t("reasons." + tcode)}
                   </div>
                 </div>
               );

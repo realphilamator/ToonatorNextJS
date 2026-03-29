@@ -1,20 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { apiFetch } from "@/lib/config";
 
-if (typeof window !== "undefined" && !window.pako) {
-  const script = document.createElement("script");
-  script.src = "https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js";
-  document.head.appendChild(script);
-}
-
-const db = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-
-const SUPABASE_FUNCTIONS_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1`;
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function escapeHTML(str) {
   return String(str || "")
@@ -31,27 +20,46 @@ function useStatus() {
   return [status, show];
 }
 
+// ── Auth helpers (JWT stored in localStorage via config) ──────────────────────
+
+import { getToken, setToken, removeToken, parseToken } from "@/lib/config";
+
+function getCurrentUserFromToken() {
+  const token = getToken();
+  if (!token) return null;
+  const payload = parseToken(token);
+  if (!payload) { removeToken(); return null; }
+  if (payload.exp && payload.exp * 1000 < Date.now()) { removeToken(); return null; }
+  return payload;
+}
+
+// ── Stats Bar ─────────────────────────────────────────────────────────────────
+
 function StatsBar() {
   const [stats, setStats] = useState(null);
+
   useEffect(() => {
-    Promise.all([
-      db.from("animations").select("id", { count: "exact", head: true }),
-      db.from("profiles").select("id", { count: "exact", head: true }),
-      db.from("comments").select("id", { count: "exact", head: true }),
-      db.from("likes").select("id", { count: "exact", head: true }),
-    ]).then(([anims, users, comments, likes]) => {
-      setStats({ anims: anims.count, users: users.count, comments: comments.count, likes: likes.count });
+    apiFetch("/admin/stats").then(data => {
+      if (data) setStats(data);
     });
   }, []);
+
   if (!stats) return null;
   return (
     <div style={{ marginBottom: 12 }}>
-      {[["🎞", stats.anims, "toons"], ["👤", stats.users, "users"], ["💬", stats.comments, "comments"], ["♥", stats.likes, "likes"]].map(([icon, count, label]) => (
+      {[
+        ["🎞", stats.animations, "toons"],
+        ["👤", stats.users, "users"],
+        ["💬", stats.comments, "comments"],
+        ["♥",  stats.likes,    "likes"],
+      ].map(([icon, count, label]) => (
         <span key={label} className="stat-pill">{icon} {count ?? "?"} {label}</span>
       ))}
     </div>
   );
 }
+
+// ── Section wrapper ───────────────────────────────────────────────────────────
 
 function Section({ title, children }) {
   return (
@@ -61,6 +69,8 @@ function Section({ title, children }) {
     </div>
   );
 }
+
+// ── Search User ───────────────────────────────────────────────────────────────
 
 function SearchUser({ currentUserRole, showStatus }) {
   const [query, setQuery] = useState("");
@@ -73,14 +83,13 @@ function SearchUser({ currentUserRole, showStatus }) {
 
   async function search() {
     if (!query.trim()) return;
-    const { data } = await db
-      .from("profiles")
-      .select("id,username,role,rank,status")
-      .ilike("username", `%${query.trim()}%`)
-      .limit(10);
-    setResults(data || []);
+    const data = await apiFetch(`/admin/users/search?q=${encodeURIComponent(query.trim())}&limit=10`);
+    const users = data?.users ?? [];
+    setResults(users);
     const init = {};
-    (data || []).forEach(u => { init[u.id] = { role: u.role || "user", rank: u.rank || "archeologist", status: u.status || "ordinary" }; });
+    users.forEach(u => {
+      init[u.id] = { role: u.role || "user", rank: u.rank || "archeologist", status: u.status || "ordinary" };
+    });
     setPending(init);
   }
 
@@ -97,62 +106,48 @@ function SearchUser({ currentUserRole, showStatus }) {
       if (currentUserRole !== "admin") { showStatus("Only admins can change roles.", false); return; }
       updates.role = changes.role;
     }
-    if (changes.rank !== user.rank) {
-      updates.rank = changes.rank;
-    }
+    if (changes.rank !== user.rank) updates.rank = changes.rank;
     if (changes.status !== user.status) {
       if (currentUserRole !== "admin") { showStatus("Only admins can change status.", false); return; }
       updates.status = changes.status;
     }
     if (Object.keys(updates).length === 0) { showStatus("No changes to apply."); return; }
 
-    const { data, error } = await db
-      .from("profiles")
-      .update(updates)
-      .eq("id", user.id)
-      .select("username,role,rank,status");
+    const data = await apiFetch(`/admin/users/${user.id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
 
-    if (error || !data || data.length === 0) { showStatus("Update failed: " + (error?.message || "unknown"), false); return; }
+    if (!data) { showStatus("Update failed.", false); return; }
 
-    setResults(r => r.map(u => u.id === user.id ? { ...u, ...data[0] } : u));
+    setResults(r => r.map(u => u.id === user.id ? { ...u, ...updates } : u));
     const parts = [];
-    if (updates.role) parts.push(`role → ${updates.role}`);
-    if (updates.rank) parts.push(`rank → ${updates.rank}`);
+    if (updates.role)   parts.push(`role → ${updates.role}`);
+    if (updates.rank)   parts.push(`rank → ${updates.rank}`);
     if (updates.status) parts.push(`status → ${updates.status}`);
-    showStatus(`${data[0].username}: ${parts.join(", ")}`);
+    showStatus(`${user.username}: ${parts.join(", ")}`);
   }
 
   async function loadUserToons(userId, username) {
     setToonsTitle(`${username}'s toons`);
     setToons("loading");
-    const { data, error } = await db.from("animations").select("id,title,created_at,is_draft,likes").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
-    if (error) { setToons([]); showStatus(error.message, false); return; }
-    setToons(data || []);
+    const data = await apiFetch(`/animations/user-by-id/${userId}?limit=50&offset=0&isOwner=true`);
+    setToons(data?.toons ?? []);
   }
 
   async function loadUserComments(userId, username) {
     setCommentsTitle(`${username}'s comments`);
     setComments("loading");
-    const { data, error } = await db.from("comments").select("id,text,created_at,animation_id").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
-    if (error) { setComments([]); showStatus(error.message, false); return; }
-    setComments(data || []);
+    const data = await apiFetch(`/admin/users/${userId}/comments?limit=50`);
+    setComments(data?.comments ?? []);
   }
 
-
-  
   async function banUser(userId, username) {
     if (currentUserRole !== "admin") { showStatus("Only admins can ban users.", false); return; }
     if (!confirm(`Ban ${username} and delete ALL their toons and comments? This cannot be undone.`)) return;
     showStatus("Banning...");
-    const { data: anims } = await db.from("animations").select("id").eq("user_id", userId);
-    const animIds = (anims || []).map(a => a.id);
-    if (animIds.length > 0) {
-      await db.from("comments").delete().in("animation_id", animIds);
-      await db.from("likes").delete().in("animation_id", animIds);
-      await db.from("animations").delete().eq("user_id", userId);
-    }
-    await db.from("comments").delete().eq("user_id", userId);
-    await db.from("likes").delete().eq("user_id", userId);
+    const data = await apiFetch(`/admin/users/${userId}/ban`, { method: "POST" });
+    if (!data) { showStatus("Ban failed.", false); return; }
     showStatus(`${username} banned and all content deleted.`);
     setResults(null);
   }
@@ -160,8 +155,12 @@ function SearchUser({ currentUserRole, showStatus }) {
   return (
     <Section title="🔍 Search User">
       <div className="mp-row">
-        <input type="text" placeholder="Username..." value={query} onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && search()} style={{ width: 200 }} />
+        <input
+          type="text" placeholder="Username..." value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && search()}
+          style={{ width: 200 }}
+        />
         <button onClick={search}>Search</button>
       </div>
 
@@ -172,7 +171,6 @@ function SearchUser({ currentUserRole, showStatus }) {
             <div key={u.id} className="mp-user-row">
               <span className={`username ${u.role}`} style={{ minWidth: 100 }}>{u.username}</span>
 
-              {/* Role dropdown — admin only */}
               <select
                 value={pending[u.id]?.role ?? u.role ?? "user"}
                 onChange={e => setPendingField(u.id, "role", e.target.value)}
@@ -237,34 +235,38 @@ function SearchUser({ currentUserRole, showStatus }) {
   );
 }
 
-/* ── Toon List ── */
+// ── Toon List ─────────────────────────────────────────────────────────────────
+
 function ToonList({ toons, showStatus }) {
   const [list, setList] = useState(null);
   useEffect(() => { setList(toons === "loading" ? null : toons); }, [toons]);
 
-  async function deleteToon(toonId) {
+  async function deleteToon(toonId, isLegacy = false) {
     if (!confirm(`Delete toon ${toonId}? This cannot be undone.`)) return;
-    await db.from("comments").delete().eq("animation_id", toonId);
-    await db.from("likes").delete().eq("animation_id", toonId);
-    const { error } = await db.from("animations").delete().eq("id", toonId);
-    if (error) { showStatus(error.message, false); return; }
+    const data = await apiFetch(`/admin/toons/${toonId}`, {
+      method: "DELETE",
+      body: JSON.stringify({ isLegacy }),
+    });
+    if (!data) { showStatus("Delete failed.", false); return; }
     setList(l => l.filter(t => t.id !== toonId));
     showStatus("Toon deleted.");
   }
 
   async function resetLikes(toonId) {
     if (!confirm("Reset all likes on this toon?")) return;
-    await db.from("likes").delete().eq("animation_id", toonId);
-    const { error } = await db.from("animations").update({ likes: 0 }).eq("id", toonId);
-    if (error) { showStatus(error.message, false); return; }
+    const data = await apiFetch(`/admin/toons/${toonId}/reset-likes`, { method: "POST" });
+    if (!data) { showStatus("Reset failed.", false); return; }
     setList(l => l.map(t => t.id === toonId ? { ...t, likes: 0 } : t));
     showStatus("Likes reset.");
   }
 
   async function toggleDraft(toonId, currentlyDraft) {
     const newVal = !currentlyDraft;
-    const { error } = await db.from("animations").update({ is_draft: newVal }).eq("id", toonId);
-    if (error) { showStatus(error.message, false); return; }
+    const data = await apiFetch(`/animations/${toonId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_draft: newVal }),
+    });
+    if (!data) { showStatus("Update failed.", false); return; }
     setList(l => l.map(t => t.id === toonId ? { ...t, is_draft: newVal } : t));
     showStatus(newVal ? "Toon set to draft." : "Toon published.");
   }
@@ -283,32 +285,43 @@ function ToonList({ toons, showStatus }) {
       <span className="mp-actions">
         <button onClick={() => resetLikes(t.id)}>Reset Likes</button>
         <button onClick={() => toggleDraft(t.id, t.is_draft)}>{t.is_draft ? "Undraft" : "Draft"}</button>
-        <button className="btn-danger" onClick={() => deleteToon(t.id)}>Delete</button>
+        <button className="btn-danger" onClick={() => deleteToon(t.id, t.legacy)}>Delete</button>
       </span>
     </div>
   ));
 }
 
+// ── Comment List ──────────────────────────────────────────────────────────────
+
 function CommentList({ comments, setComments, showStatus }) {
   async function deleteComment(commentId) {
-    const { error } = await db.from("comments").delete().eq("id", commentId);
-    if (error) { showStatus(error.message, false); return; }
+    const data = await apiFetch(`/comments/${commentId}`, { method: "DELETE" });
+    if (!data) { showStatus("Delete failed.", false); return; }
     setComments(c => c.filter(x => x.id !== commentId));
     showStatus("Comment deleted.");
   }
 
   if (comments === "loading") return <div className="mp-empty">Loading...</div>;
   if (!comments || comments.length === 0) return <div className="mp-empty">No comments.</div>;
+
   return comments.map(c => (
     <div key={c.id} className="mp-comment-row">
       {c.author_username && <span className="username">{c.author_username}</span>}
       <span className="mp-comment-text">{c.text}</span>
       <span className="grayb small">{c.created_at ? new Date(c.created_at).toLocaleDateString() : "—"}</span>
-      {c.animation_id && <a href={`/toon/${c.animation_id}`} target="_blank" rel="noreferrer" className="grayb small">view toon</a>}
-      <button className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => deleteComment(c.id)}>Delete</button>
+      {c.animation_id && (
+        <a href={`/toon/${c.animation_id}`} target="_blank" rel="noreferrer" className="grayb small">
+          view toon
+        </a>
+      )}
+      <button className="btn-danger" style={{ marginLeft: "auto" }} onClick={() => deleteComment(c.id)}>
+        Delete
+      </button>
     </div>
   ));
 }
+
+// ── Recent Toons ──────────────────────────────────────────────────────────────
 
 const RECENT_PAGE_SIZE = 20;
 const UUID_RE_RT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -325,29 +338,9 @@ function RecentToons({ showStatus }) {
     setToons(null);
     setSearchMode(false);
     const offset = pageNum * RECENT_PAGE_SIZE;
-    const fetchCount = RECENT_PAGE_SIZE * 2;
-    const [newRes, legacyRes] = await Promise.all([
-      db.from("animations").select("id,title,created_at,user_id,is_draft")
-        .eq("is_draft", false).order("created_at", { ascending: false })
-        .range(0, offset + fetchCount - 1),
-      db.from("legacy_animations").select("id,title,created_at,user_id,is_draft")
-        .eq("is_draft", false).order("created_at", { ascending: false })
-        .range(0, offset + fetchCount - 1),
-    ]);
-    const all = [
-      ...(newRes.data || []).map(t => ({ ...t, legacy: false })),
-      ...(legacyRes.data || []).map(t => ({ ...t, legacy: true })),
-    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    const paginated = all.slice(offset, offset + RECENT_PAGE_SIZE);
-    setHasMore(all.length > offset + RECENT_PAGE_SIZE);
-
-    const userIds = [...new Set(paginated.map(t => t.user_id).filter(Boolean))];
-    const { data: profiles } = userIds.length > 0
-      ? await db.from("profiles").select("id,username").in("id", userIds)
-      : { data: [] };
-    const userMap = Object.fromEntries((profiles || []).map(p => [p.id, p.username]));
-    setToons(paginated.map(t => ({ ...t, username: userMap[t.user_id] || "unknown" })));
+    const data = await apiFetch(`/admin/toons/recent?limit=${RECENT_PAGE_SIZE}&offset=${offset}`);
+    setToons(data?.toons ?? []);
+    setHasMore(data?.hasMore ?? false);
   }, []);
 
   useEffect(() => { load(0); }, [load]);
@@ -359,7 +352,6 @@ function RecentToons({ showStatus }) {
 
   async function searchById() {
     const raw = searchId.trim().replace(/\/$/, "");
-    // Accept full URLs too
     const urlMatch = raw.match(/\/toon\/([a-zA-Z0-9_-]{3,40})/);
     const id = urlMatch ? urlMatch[1] : raw;
     if (!id || (!UUID_RE_RT.test(id) && !LEGACY_RE_RT.test(id))) {
@@ -368,22 +360,9 @@ function RecentToons({ showStatus }) {
     }
     setToons(null);
     setSearchMode(true);
-    const isLegacy = !UUID_RE_RT.test(id);
-    const table = isLegacy ? "legacy_animations" : "animations";
-    const { data, error } = await db.from(table).select("id,title,created_at,user_id,is_draft").eq("id", id).maybeSingle();
-    if (error || !data) {
-      // Try the other table as fallback
-      const otherTable = isLegacy ? "animations" : "legacy_animations";
-      const { data: data2, error: err2 } = await db.from(otherTable).select("id,title,created_at,user_id,is_draft").eq("id", id).maybeSingle();
-      if (err2 || !data2) { setToons([]); showStatus(`No toon found with ID: ${id}`, false); return; }
-      const toon = { ...data2, legacy: !isLegacy };
-      const { data: prof } = await db.from("profiles").select("id,username").eq("id", toon.user_id).maybeSingle();
-      setToons([{ ...toon, username: prof?.username || "unknown" }]);
-      return;
-    }
-    const toon = { ...data, legacy: isLegacy };
-    const { data: prof } = await db.from("profiles").select("id,username").eq("id", toon.user_id).maybeSingle();
-    setToons([{ ...toon, username: prof?.username || "unknown" }]);
+    const data = await apiFetch(`/admin/toons/by-id/${encodeURIComponent(id)}`);
+    if (!data?.toon) { setToons([]); showStatus(`No toon found with ID: ${id}`, false); return; }
+    setToons([data.toon]);
   }
 
   function clearSearch() {
@@ -394,27 +373,33 @@ function RecentToons({ showStatus }) {
 
   async function deleteAnyToon(toon) {
     if (!confirm(`Delete toon ${toon.id}? This cannot be undone.`)) return;
-    if (toon.legacy) {
-      await db.from("comments").delete().eq("legacy_animation_id", toon.id);
-      await db.from("likes").delete().eq("legacy_animation_id", toon.id);
-      await db.from("legacy_animations").delete().eq("id", toon.id);
-    } else {
-      await db.from("comments").delete().eq("animation_id", toon.id);
-      await db.from("likes").delete().eq("animation_id", toon.id);
-      await db.from("animations").delete().eq("id", toon.id);
-    }
+    const data = await apiFetch(`/admin/toons/${toon.id}`, {
+      method: "DELETE",
+      body: JSON.stringify({ isLegacy: toon.legacy ?? false }),
+    });
+    if (!data) { showStatus("Delete failed.", false); return; }
     setToons(t => t.filter(x => x.id !== toon.id));
     showStatus("Toon deleted.");
   }
 
   return (
-    <Section title={<>🕐 Recent Toons {!searchMode && <button style={{ fontSize: 9, height: 22, padding: "1px 8px" }} onClick={() => goToPage(0)}>Refresh</button>}</>}>
-      {/* ID search bar */}
+    <Section title={
+      <>
+        🕐 Recent Toons{" "}
+        {!searchMode && (
+          <button style={{ fontSize: 9, height: 22, padding: "1px 8px" }} onClick={() => goToPage(0)}>
+            Refresh
+          </button>
+        )}
+      </>
+    }>
       <div className="mp-row" style={{ marginBottom: 10 }}>
-        <input type="text" placeholder="Search by toon ID or URL..." value={searchId}
+        <input
+          type="text" placeholder="Search by toon ID or URL..." value={searchId}
           onChange={e => setSearchId(e.target.value)}
           onKeyDown={e => e.key === "Enter" && searchById()}
-          style={{ width: 280 }} />
+          style={{ width: 280 }}
+        />
         <button onClick={searchById}>Search</button>
         {searchMode && <button onClick={clearSearch}>✕ Clear</button>}
       </div>
@@ -438,6 +423,7 @@ function RecentToons({ showStatus }) {
             </div>
           ))
       }
+
       {!searchMode && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
           <button onClick={() => goToPage(0)} disabled={page === 0 || !toons}>«</button>
@@ -450,28 +436,35 @@ function RecentToons({ showStatus }) {
   );
 }
 
+// ── IP Bans ───────────────────────────────────────────────────────────────────
+
 function IpBans({ showStatus }) {
   const [bans, setBans] = useState(null);
   const [ip, setIp] = useState("");
   const [reason, setReason] = useState("");
 
   const load = useCallback(async () => {
-    const { data } = await db.from("banned_ips").select("ip,reason,banned_at").order("banned_at", { ascending: false });
-    setBans(data || []);
+    const data = await apiFetch("/admin/ip-bans");
+    setBans(data?.bans ?? []);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   async function addBan() {
     if (!ip.trim()) return;
-    await db.from("banned_ips").insert({ ip: ip.trim(), reason: reason.trim() });
+    const data = await apiFetch("/admin/ip-bans", {
+      method: "POST",
+      body: JSON.stringify({ ip: ip.trim(), reason: reason.trim() }),
+    });
+    if (!data) { showStatus("Failed to add ban.", false); return; }
     setIp(""); setReason("");
     showStatus(`IP banned: ${ip.trim()}`);
     load();
   }
 
   async function removeBan(ipAddr) {
-    await db.from("banned_ips").delete().eq("ip", ipAddr);
+    const data = await apiFetch(`/admin/ip-bans/${encodeURIComponent(ipAddr)}`, { method: "DELETE" });
+    if (!data) { showStatus("Failed to remove ban.", false); return; }
     showStatus(`IP ban removed: ${ipAddr}`);
     load();
   }
@@ -479,18 +472,29 @@ function IpBans({ showStatus }) {
   return (
     <Section title="🚫 IP Bans">
       <div className="mp-row">
-        <input type="text" placeholder="IP address..." value={ip} onChange={e => setIp(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && addBan()} style={{ width: 160 }} />
-        <input type="text" placeholder="Reason (optional)" value={reason} onChange={e => setReason(e.target.value)} style={{ width: 200 }} />
+        <input
+          type="text" placeholder="IP address..." value={ip}
+          onChange={e => setIp(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && addBan()}
+          style={{ width: 160 }}
+        />
+        <input
+          type="text" placeholder="Reason (optional)" value={reason}
+          onChange={e => setReason(e.target.value)}
+          style={{ width: 200 }}
+        />
         <button onClick={addBan}>Add Ban</button>
       </div>
+
       {!bans
         ? <div className="mp-empty">Loading...</div>
         : bans.length === 0
           ? <div className="mp-empty">No banned IPs.</div>
           : (
             <table className="mp-table">
-              <thead><tr><th>IP</th><th>Reason</th><th>Date</th><th></th></tr></thead>
+              <thead>
+                <tr><th>IP</th><th>Reason</th><th>Date</th><th></th></tr>
+              </thead>
               <tbody>
                 {bans.map(b => (
                   <tr key={b.ip}>
@@ -508,6 +512,8 @@ function IpBans({ showStatus }) {
   );
 }
 
+// ── Debug Spooders ────────────────────────────────────────────────────────────
+
 function DebugSpooders({ showStatus }) {
   const [username, setUsername] = useState("");
   const [amount, setAmount] = useState("");
@@ -521,19 +527,12 @@ function DebugSpooders({ showStatus }) {
     }
     setLoading(true);
     try {
-      const { data: target } = await db.from("profiles").select("id, spiders").ilike("username", username.trim()).maybeSingle();
-      if (!target) { showStatus(`User '${username}' not found.`, false); return; }
-
-      const { data: { user } } = await db.auth.getUser();
-      const { error } = await db.from("spooder_transactions").insert({
-        user_id: target.id,
-        amount: sign * n,
-        source: "admin",
-        note: "debug",
-        credited_by: user.id,
+      const data = await apiFetch("/admin/spooders/adjust", {
+        method: "POST",
+        body: JSON.stringify({ username: username.trim(), amount: sign * n, source: "admin", note: "debug" }),
       });
-      if (error) throw error;
-      showStatus(`${sign > 0 ? "+" : "-"}${n} spooders → ${username.trim()} (new balance: ~${target.spiders + sign * n})`);
+      if (!data) throw new Error("Request failed");
+      showStatus(`${sign > 0 ? "+" : ""}${sign * n} spooders → ${username.trim()} (new balance: ~${data.new_balance})`);
       setAmount("");
     } catch (err) {
       showStatus(err.message, false);
@@ -544,12 +543,18 @@ function DebugSpooders({ showStatus }) {
 
   return (
     <Section title="🐛 Debug Spooders">
-      <div className="mp-empty" style={{ marginBottom: 8 }}>Directly add or remove spooders from any user. Logged as <code>admin</code> source.</div>
+      <div className="mp-empty" style={{ marginBottom: 8 }}>
+        Directly add or remove spooders from any user. Logged as <code>admin</code> source.
+      </div>
       <div className="mp-row">
-        <input type="text" placeholder="Username..." value={username}
-          onChange={e => setUsername(e.target.value)} style={{ width: 180 }} />
-        <input type="number" placeholder="Amount..." value={amount} min="1"
-          onChange={e => setAmount(e.target.value)} style={{ width: 100 }} />
+        <input
+          type="text" placeholder="Username..." value={username}
+          onChange={e => setUsername(e.target.value)} style={{ width: 180 }}
+        />
+        <input
+          type="number" placeholder="Amount..." value={amount} min="1"
+          onChange={e => setAmount(e.target.value)} style={{ width: 100 }}
+        />
         <button onClick={() => adjust(1)} disabled={loading}>+ Add</button>
         <button onClick={() => adjust(-1)} disabled={loading} className="btn-danger">− Remove</button>
       </div>
@@ -557,8 +562,10 @@ function DebugSpooders({ showStatus }) {
   );
 }
 
+// ── Boosty / Ko-fi Credit ─────────────────────────────────────────────────────
+
 function BoostyCredit({ showStatus }) {
-  const [tab, setTab] = useState("boosty"); // "boosty" | "kofi"
+  const [tab, setTab] = useState("boosty");
   const [username, setUsername] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
@@ -569,11 +576,7 @@ function BoostyCredit({ showStatus }) {
   const currency = isKofi ? "$" : "₽";
   const preview = Number(amount) > 0 ? `= ${Math.round(Number(amount) * rate)} spooders` : null;
 
-  function switchTab(t) {
-    setTab(t);
-    setAmount("");
-    setNote("");
-  }
+  function switchTab(t) { setTab(t); setAmount(""); setNote(""); }
 
   async function credit() {
     if (!username.trim() || !amount || Number(amount) <= 0) {
@@ -582,22 +585,16 @@ function BoostyCredit({ showStatus }) {
     }
     setLoading(true);
     try {
-      const { data: { session } } = await db.auth.getSession();
-      const bodyPayload = {
+      const body = {
         username: username.trim(),
         note: note.trim() || undefined,
         ...(isKofi ? { dollars: Number(amount) } : { rubles: Number(amount) }),
       };
-      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/admin-credit-spiders`, {
+      const data = await apiFetch("/admin/spooders/credit", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(bodyPayload),
+        body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? res.statusText);
+      if (!data) throw new Error("Request failed");
       const upgradeMsg = data.status === "cowboy" ? " 🤠 Status upgraded to cowboy!" : "";
       showStatus(`✓ Credited ${data.spiders_credited} spooders to ${username.trim()} (${currency}${amount})${upgradeMsg}`);
       setAmount(""); setNote("");
@@ -610,11 +607,11 @@ function BoostyCredit({ showStatus }) {
 
   return (
     <Section title={isKofi ? "☕ Ko-fi Credit" : "🕷 Boosty Credit"}>
-      {/* Tab switcher */}
       <div style={{ display: "flex", gap: 0, marginBottom: 10, borderBottom: "1px solid #ddd" }}>
         {[["boosty", "🕷 Boosty"], ["kofi", "☕ Ko-fi"]].map(([key, label]) => (
           <button key={key} onClick={() => switchTab(key)} style={{
-            borderRadius: "3px 3px 0 0", border: "1px solid #ccc", borderBottom: tab === key ? "1px solid #fafafa" : "1px solid #ccc",
+            borderRadius: "3px 3px 0 0", border: "1px solid #ccc",
+            borderBottom: tab === key ? "1px solid #fafafa" : "1px solid #ccc",
             background: tab === key ? "#fafafa" : "#f0f0f0", marginBottom: -1,
             fontWeight: tab === key ? "bold" : "normal", marginRight: 2,
           }}>{label}</button>
@@ -626,204 +623,134 @@ function BoostyCredit({ showStatus }) {
           : "Manually credit spooders for a verified Boosty donation. Rate: ₽1 = 10 spooders."}
       </div>
       <div className="mp-row">
-        <input type="text" placeholder="Toonator username..." value={username}
-          onChange={e => setUsername(e.target.value)} style={{ width: 180 }} />
-        <input type="number" placeholder={isKofi ? "USD..." : "Rubles..."} value={amount} min="1" step={isKofi ? "0.01" : "1"}
-          onChange={e => setAmount(e.target.value)} style={{ width: 100 }} />
+        <input
+          type="text" placeholder="Toonator username..." value={username}
+          onChange={e => setUsername(e.target.value)} style={{ width: 180 }}
+        />
+        <input
+          type="number" placeholder={isKofi ? "USD..." : "Rubles..."} value={amount}
+          min="1" step={isKofi ? "0.01" : "1"}
+          onChange={e => setAmount(e.target.value)} style={{ width: 100 }}
+        />
         {preview && <span className="grayb small">{preview}</span>}
       </div>
       <div className="mp-row">
-        <input type="text" placeholder={isKofi ? "Ko-fi transaction ID (optional)" : "Boosty transaction ID (optional)"} value={note}
-          onChange={e => setNote(e.target.value)} style={{ width: 300 }} />
+        <input
+          type="text"
+          placeholder={isKofi ? "Ko-fi transaction ID (optional)" : "Boosty transaction ID (optional)"}
+          value={note} onChange={e => setNote(e.target.value)} style={{ width: 300 }}
+        />
         <button onClick={credit} disabled={loading}>{loading ? "Crediting..." : "Credit Spooders"}</button>
       </div>
     </Section>
   );
 }
 
-export default function ModPanel() {
-  const [user, setUser] = useState(undefined);
-  const [currentUserRole, setCurrentUserRole] = useState(null);
-  const [status, showStatus] = useStatus();
+// ── Toon of the Day ───────────────────────────────────────────────────────────
 
-  useEffect(() => {
-    db.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { setUser(null); return; }
-      const { data: profile } = await db.from("profiles").select("role").eq("id", user.id).single();
-      setCurrentUserRole(profile?.role || "user");
-      setUser(user);
+function ToonOfDay({ showStatus }) {
+  const [toonUrl, setToonUrl] = useState("");
+  const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const LEGACY_RE = /^[a-zA-Z0-9]{3,16}$/;
+
+  function parseToonId(raw) {
+    const stripped = raw.trim().replace(/\/$/, "");
+    const urlMatch = stripped.match(/\/toon\/([a-zA-Z0-9_-]{3,40})/);
+    if (urlMatch) return urlMatch[1];
+    if (UUID_RE.test(stripped) || LEGACY_RE.test(stripped)) return stripped;
+    return null;
+  }
+
+  async function lookupToon() {
+    const id = parseToonId(toonUrl);
+    if (!id) { showStatus("Invalid toon URL or ID.", false); return; }
+    const isLegacy = !UUID_RE.test(id);
+    const data = await apiFetch(`/admin/toons/by-id/${encodeURIComponent(id)}`);
+    if (!data?.toon) { showStatus(`Toon not found: ${id}`, false); setPreview(null); return; }
+    setPreview({ id: data.toon.id, isLegacy, title: data.toon.title || "Untitled" });
+    showStatus(`Found: "${data.toon.title || "Untitled"}" (${isLegacy ? "legacy" : "new"})`, true);
+  }
+
+  async function award() {
+    if (!preview) { showStatus("Look up a toon first.", false); return; }
+    if (!dateStr) { showStatus("Pick a date.", false); return; }
+    if (!confirm(`Award "${preview.title}" as Toon of the Day for ${dateStr}?`)) return;
+    setLoading(true);
+    showStatus("Awarding...");
+    const data = await apiFetch("/toon-of-day", {
+      method: "POST",
+      body: JSON.stringify({ toonId: preview.id, isLegacy: preview.isLegacy, awardedAt: dateStr }),
     });
-  }, []);
-
-  async function login() {
-    const email = prompt("Admin email:");
-    if (!email) return;
-    const password = prompt("Password:");
-    if (!password) return;
-    const { error } = await db.auth.signInWithPassword({ email, password });
-    if (error) { alert("Login failed: " + error.message); return; }
-    window.location.reload();
+    if (!data) { showStatus("Failed to award.", false); setLoading(false); return; }
+    showStatus(`✓ "${preview.title}" is now Toon of the Day for ${dateStr}.`);
+    setPreview(null); setToonUrl(""); setLoading(false);
   }
 
-  async function logout() {
-    await db.auth.signOut();
-    window.location.reload();
-  }
-
-  if (user === undefined) return <div id="content_wrap"><div id="content"><div id="access-denied" style={{ display: "block" }}>Loading...</div></div></div>;
-
-  if (!user) return (
-    <div id="content_wrap"><div id="content">
-      <div id="access-denied" style={{ display: "block" }}>
-        Moderator login required.<br /><br />
-        <button onClick={login}>Sign In</button>
+  return (
+    <Section title="⭐ Toon of the Day">
+      <div className="mp-empty" style={{ marginBottom: 8 }}>
+        Award a toon as Toon of the Day. This also sets it as the current featured toon sitewide.
       </div>
-    </div></div>
-  );
-
-  if (currentUserRole !== "mod" && currentUserRole !== "admin") return (
-    <div id="content_wrap"><div id="content">
-      <div id="access-denied" style={{ display: "block" }}>
-        You don&apos;t have permission to view this page.<br /><br />
-        <button onClick={logout}>Log Out</button>
+      <div className="mp-row">
+        <input
+          type="text" placeholder="Toon URL or ID..." value={toonUrl}
+          onChange={e => { setToonUrl(e.target.value); setPreview(null); }}
+          onKeyDown={e => e.key === "Enter" && lookupToon()}
+          style={{ width: 320 }}
+        />
+        <button onClick={lookupToon}>Look up</button>
       </div>
-    </div></div>
+      {preview && (
+        <div className="mp-toon-row" style={{ marginBottom: 8 }}>
+          <span className="mp-toon-title">
+            <a href={`/toon/${preview.id}`} target="_blank" rel="noreferrer">{preview.title}</a>
+          </span>
+          <span className="grayb small">({preview.isLegacy ? "legacy" : "new"} · {preview.id})</span>
+        </div>
+      )}
+      <div className="mp-row">
+        <label style={{ font: "10pt Arial", marginRight: 4 }}>Award date:</label>
+        <input
+          type="date" value={dateStr} onChange={e => setDateStr(e.target.value)}
+          style={{ font: "10pt Arial", border: "1px solid #ccc", borderRadius: 3, padding: "3px 6px", height: 28 }}
+        />
+        <button onClick={award} disabled={!preview || loading}>
+          {loading ? "Awarding..." : "Award Toon of the Day"}
+        </button>
+      </div>
+      <div className="mp-empty" style={{ marginTop: 4 }}>
+        If a toon was already awarded on the selected date, it will be replaced.
+      </div>
+    </Section>
   );
+}
 
-  function ToonOfDay({ showStatus }) {
-    const [toonUrl, setToonUrl] = useState("");
-    const [dateStr, setDateStr] = useState(() => new Date().toISOString().slice(0, 10));
-    const [preview, setPreview] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const LEGACY_RE = /^[a-zA-Z0-9]{3,16}$/;
-
-    function parseToonId(raw) {
-      const stripped = raw.trim().replace(/\/$/, "");
-      const urlMatch = stripped.match(/\/toon\/([a-zA-Z0-9_-]{3,40})/);
-      if (urlMatch) return urlMatch[1];
-      if (UUID_RE.test(stripped) || LEGACY_RE.test(stripped)) return stripped;
-      return null;
-    }
-
-    async function lookupToon() {
-      const id = parseToonId(toonUrl);
-      if (!id) { showStatus("Invalid toon URL or ID.", false); return; }
-      const isLegacy = !UUID_RE.test(id);
-      const table = isLegacy ? "legacy_animations" : "animations";
-      const { data, error } = await db.from(table).select("id, title").eq("id", id).maybeSingle();
-      if (error || !data) { showStatus(`Toon not found: ${id}`, false); setPreview(null); return; }
-      setPreview({ id: data.id, isLegacy, title: data.title || "Untitled" });
-      showStatus(`Found: "${data.title || "Untitled"}" (${isLegacy ? "legacy" : "new"})`, true);
-    }
-
-    async function award() {
-      if (!preview) { showStatus("Look up a toon first.", false); return; }
-      if (!dateStr) { showStatus("Pick a date.", false); return; }
-      if (!confirm(`Award "${preview.title}" as Toon of the Day for ${dateStr}?`)) return;
-      setLoading(true);
-      showStatus("Awarding...");
-      const { error: insertError } = await db.from("toon_of_day").upsert(
-        { awarded_at: dateStr, toon_id: preview.id, is_legacy: preview.isLegacy },
-        { onConflict: "awarded_at" }
-      );
-      if (insertError) { showStatus(`Failed to insert: ${insertError.message}`, false); setLoading(false); return; }
-      await db.from("animations").update({ featured: false }).eq("featured", true);
-      await db.from("legacy_animations").update({ featured: false }).eq("featured", true);
-      const winnerTable = preview.isLegacy ? "legacy_animations" : "animations";
-      const { error: featuredError } = await db.from(winnerTable).update({ featured: true }).eq("id", preview.id);
-      if (featuredError) { showStatus(`Inserted but failed to set featured: ${featuredError.message}`, false); setLoading(false); return; }
-      showStatus(`✓ "${preview.title}" is now Toon of the Day for ${dateStr}.`);
-      setPreview(null); setToonUrl(""); setLoading(false);
-    }
-
-    return (
-      <Section title="⭐ Toon of the Day">
-        <div className="mp-empty" style={{ marginBottom: 8 }}>
-          Award a toon as Toon of the Day. This also sets it as the current featured toon sitewide.
-        </div>
-        <div className="mp-row">
-          <input type="text" placeholder="Toon URL or ID..." value={toonUrl}
-            onChange={(e) => { setToonUrl(e.target.value); setPreview(null); }}
-            onKeyDown={(e) => e.key === "Enter" && lookupToon()} style={{ width: 320 }} />
-          <button onClick={lookupToon}>Look up</button>
-        </div>
-        {preview && (
-          <div className="mp-toon-row" style={{ marginBottom: 8 }}>
-            <span className="mp-toon-title">
-              <a href={`/toon/${preview.id}`} target="_blank" rel="noreferrer">{preview.title}</a>
-            </span>
-            <span className="grayb small">({preview.isLegacy ? "legacy" : "new"} · {preview.id})</span>
-          </div>
-        )}
-        <div className="mp-row">
-          <label style={{ font: "10pt Arial", marginRight: 4 }}>Award date:</label>
-          <input type="date" value={dateStr} onChange={(e) => setDateStr(e.target.value)}
-            style={{ font: "10pt Arial", border: "1px solid #ccc", borderRadius: 3, padding: "3px 6px", height: 28 }} />
-          <button onClick={award} disabled={!preview || loading}>
-            {loading ? "Awarding..." : "Award Toon of the Day"}
-          </button>
-        </div>
-        <div className="mp-empty" style={{ marginTop: 4 }}>
-          If a toon was already awarded on the selected date, it will be replaced.
-        </div>
-      </Section>
-    );
-  }
+// ── Fix Frame Counts ──────────────────────────────────────────────────────────
 
 function FixFrameCounts({ showStatus }) {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState("");
 
   async function run() {
-    if (!confirm("This will fetch and decompress all animations with 0 frames to fix their counts. Continue?")) return;
+    if (!confirm("Run the server-side frame count fix for all animations with 0 frames? Continue?")) return;
     setRunning(true);
-    setProgress("Fetching animations...");
-
-    let fixed = 0, failed = 0, page = 0;
-    const pageSize = 50;
-
-    while (true) {
-      const { data, error } = await db
-        .from("animations")
-        .select("id, frames_compressed")
-        .eq("frame_count", 0)
-        .not("frames_compressed", "is", null)
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (error || !data || data.length === 0) break;
-
-      for (const anim of data) {
-        try {
-          const binary = atob(anim.frames_compressed);
-          const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-          const json = pako.ungzip(bytes, { to: "string" });
-          const frames = JSON.parse(json);
-          const count = Array.isArray(frames) ? frames.length : 0;
-          if (count > 0) {
-            await db.from("animations").update({ frame_count: count }).eq("id", anim.id);
-            fixed++;
-          }
-        } catch {
-          failed++;
-        }
-        setProgress(`Fixed: ${fixed}, Failed: ${failed}...`);
-      }
-
-      if (data.length < pageSize) break;
-      page++;
-    }
-
-    setProgress(`Done! Fixed: ${fixed}, Failed: ${failed}`);
+    setProgress("Running...");
+    const data = await apiFetch("/admin/maintenance/fix-frame-counts", { method: "POST" });
+    if (!data) { showStatus("Request failed.", false); setRunning(false); setProgress(""); return; }
+    const msg = `Done! Fixed: ${data.fixed ?? "?"}, Failed: ${data.failed ?? "?"}`;
+    setProgress(msg);
     setRunning(false);
-    showStatus(`Frame count fix complete. Fixed: ${fixed}, Failed: ${failed}`);
+    showStatus(`Frame count fix complete. Fixed: ${data.fixed ?? "?"}, Failed: ${data.failed ?? "?"}`);
   }
 
   return (
     <Section title="🔧 Fix Frame Counts">
       <div className="mp-empty" style={{ marginBottom: 8 }}>
-        Fixes frame_count = 0 for all animations that have compressed frames saved.
+        Fixes frame_count = 0 for all animations that have compressed frames saved. Runs server-side.
       </div>
       <div className="mp-row">
         <button onClick={run} disabled={running}>{running ? "Running..." : "Run Fix"}</button>
@@ -832,6 +759,74 @@ function FixFrameCounts({ showStatus }) {
     </Section>
   );
 }
+
+// ── Main ModPanel ─────────────────────────────────────────────────────────────
+
+export default function ModPanel() {
+  const [user, setUser] = useState(undefined);   // undefined = loading
+  const [currentUserRole, setCurrentUserRole] = useState(null);
+  const [status, showStatus] = useStatus();
+
+  useEffect(() => {
+    const tokenPayload = getCurrentUserFromToken();
+    if (!tokenPayload) { setUser(null); return; }
+    apiFetch("/profiles/me").then(profile => {
+      if (!profile) { removeToken(); setUser(null); return; }
+      setCurrentUserRole(profile.role || "user");
+      setUser(profile);
+    });
+  }, []);
+
+  async function login() {
+    const email = prompt("Admin email:");
+    if (!email) return;
+    const password = prompt("Password:");
+    if (!password) return;
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.token) { alert("Login failed: " + (data.message || res.statusText)); return; }
+    setToken(data.token);
+    window.location.reload();
+  }
+
+  function logout() {
+    removeToken();
+    window.location.reload();
+  }
+
+  if (user === undefined) {
+    return (
+      <div id="content_wrap"><div id="content">
+        <div id="access-denied" style={{ display: "block" }}>Loading...</div>
+      </div></div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div id="content_wrap"><div id="content">
+        <div id="access-denied" style={{ display: "block" }}>
+          Moderator login required.<br /><br />
+          <button onClick={login}>Sign In</button>
+        </div>
+      </div></div>
+    );
+  }
+
+  if (currentUserRole !== "mod" && currentUserRole !== "admin") {
+    return (
+      <div id="content_wrap"><div id="content">
+        <div id="access-denied" style={{ display: "block" }}>
+          You don&apos;t have permission to view this page.<br /><br />
+          <button onClick={logout}>Log Out</button>
+        </div>
+      </div></div>
+    );
+  }
 
   return (
     <div id="content_wrap">
@@ -856,6 +851,7 @@ function FixFrameCounts({ showStatus }) {
         <BoostyCredit showStatus={showStatus} />
         {currentUserRole === "admin" && <DebugSpooders showStatus={showStatus} />}
         <IpBans showStatus={showStatus} />
+        {currentUserRole === "admin" && <FixFrameCounts showStatus={showStatus} />}
 
         <style>{`
           * { box-sizing: border-box; }
@@ -877,7 +873,9 @@ function FixFrameCounts({ showStatus }) {
           .mod-status.ok { color: green; }
           .mod-status.err { color: red; font-weight: bold; }
           .mp-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-          .mp-row input[type="text"], .mp-row input[type="number"], .mp-row select {
+          .mp-row input[type="text"],
+          .mp-row input[type="number"],
+          .mp-row select {
             font: 10pt Arial; border: 1px solid #ccc; border-radius: 3px;
             padding: 3px 6px; height: 28px;
           }
@@ -925,12 +923,14 @@ function FixFrameCounts({ showStatus }) {
           .mp-empty { color: #888; font: 10pt Arial; padding: 8px 0; }
           .grayb { color: #888; }
           .small { font-size: 9pt; }
-          .stat-pill { display: inline-block; background: #eee; border-radius: 12px; padding: 3px 12px; font: 10pt Arial; margin-right: 6px; margin-bottom: 4px; }
+          .stat-pill {
+            display: inline-block; background: #eee; border-radius: 12px;
+            padding: 3px 12px; font: 10pt Arial; margin-right: 6px; margin-bottom: 4px;
+          }
           .mp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
           .mp-header h1 { font: 18pt ToonatorFont; font-weight: normal; margin: 0; }
           .role-badge { font: 9pt Arial; background: #333; color: #fff; border-radius: 10px; padding: 2px 10px; }
         `}</style>
-
       </div>
     </div>
   );

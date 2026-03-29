@@ -4,6 +4,7 @@
     "frames": "{count} frames"
   },
   "register": {
+    "code":"en",
     "title": "Sign up",
     "usernameLabel": "Username:",
     "usernamePlaceholder": "Letters, numbers, _ or -",
@@ -14,7 +15,18 @@
     "passwordMatchError": "passwords don't match",
     "emailLabel": "E-mail:",
     "emailError": "no email",
-    "registerButton": "Register"
+    "registerButton": "Register",
+    "registeringButton": "Registering…",
+    "verifyTitle": "Check your email",
+    "verifyMessage": "We've sent a verification link to:",
+    "verifySubtext": "Click the link in the email to activate your account. It expires in 24 hours.",
+    "continueButton": "Continue to site",
+    "verifying": "Verifying your email…",
+    "verifySuccessTitle": "Email verified!",
+    "verifySuccess": "Your email has been verified! You can now use your account.",
+    "verifyErrorTitle": "Verification failed",
+    "verifyError": "Invalid or expired verification link.",
+    "backToRegister": "Back to register"
   },
   "spiders": {
     "titleLoggedOut": "Spooders (Spiders)",
@@ -28,8 +40,8 @@
     "balance": "You have {count} spooders.",
     "buyLink": "Buy spooders.",
     "noActivity": "No spooder activity yet.",
-    "debit": "minus {count} spooders",
-    "credit": "{count} spooders",
+    "debit": "-{count} spooders",
+    "credit": "+{count} spooders",
     "earnTitle": "How to earn spooders?",
     "earnIntro": "Spooders are given for active participation in the life of the Toonator.",
     "earnItem1": "A toon for the Topic of the Day.",
@@ -219,9 +231,12 @@
     "title": "Notifications",
     "empty": "No notifications yet.",
     "pleaseLogIn": "Please log in.",
-    "reason_like": "<link>{actor}</link> liked your toon",
-    "reason_comment": "<link>{actor}</link> commented on your toon",
-    "reason_unknown": "{reason}"
+    "reasons": {
+      "like": " liked your toon",
+      "comment": " commented on your toon",
+      "comment_quare": " commented on your toon :) 🍓",
+      "comment_mention": " mentioned you in a toon"
+    }
   },
   "goodPlace": {
     "title": "Good Place",
@@ -351,7 +366,8 @@
       "errorLimit": "You have already submitted 2 promotion requests this month.",
       "errorPending": "You already have a pending promotion request being reviewed.",
       "successMsg": "Promotion request submitted! Moderators will review it within 24 hours.",
-      "errorSubmit": "Error submitting request: {error}"
+      "errorSubmit": "Error submitting request: {error}",
+      "disabled": "Currently, we don`t accept promotion requests!"
     },
     "nickColor": {
       "title": "Nick color",
@@ -383,5 +399,17 @@
     },
     "submit": "Submit",
     "saving": "Saving..."
-  }
+  },
+  "key-0": "*",
+  "key": "*",
+  "reddit": "Reddit",
+  "twitter": "Twitter",
+  "mentioned-you": "mentioned you",
+  "mentioned-you-in-a-toon-description": "mentioned you in a toon description",
+  "mentioned-you-in-a-toon-title": "mentioned you in a toon title",
+  "mentioned-you-in-a-comment": "mentioned you in a comment",
+  "key-1": "@",
+  "mention-username": "Mention {0}",
+  "reply-to-username": "Reply to {0}",
+  "loading-toon": "Loading toon…"
 }

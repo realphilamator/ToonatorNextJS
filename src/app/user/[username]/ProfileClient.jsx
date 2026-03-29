@@ -17,6 +17,8 @@ import {
 const PER_PAGE = 12;
 
 export default function ProfileClient({ username, profile, stats }) {
+
+  console.log(`ProfileClient for ${username}`);
   const t = useTranslations('profile');
   const { user, loading: authLoading } = useAuth();
   const [currentTab, setCurrentTab]         = useState("album");
@@ -87,10 +89,12 @@ export default function ProfileClient({ username, profile, stats }) {
 
   async function handleAlbumToggle(toonId, isLegacy, nextValue) {
     setAlbumOverrides((prev) => ({ ...prev, [toonId]: nextValue }));
-    const table = isLegacy ? "legacy_animations" : "animations";
-    const { db } = await import("@/lib/config");
-    const { error } = await db.from(table).update({ in_album: nextValue }).eq("id", toonId);
-    if (error) {
+    const { apiFetch } = await import("@/lib/config");
+    const result = await apiFetch(`/animations/${toonId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ in_album: nextValue }),
+    });
+    if (!result) {
       setAlbumOverrides((prev) => ({ ...prev, [toonId]: !nextValue }));
     }
   }
@@ -133,6 +137,7 @@ export default function ProfileClient({ username, profile, stats }) {
               </h3>
               <div className="center">
                 <UserAvatar
+                  username={username}
                   avatarToonId={avatarToonId}
                   size={100}
                   className={`p200 my-avatar${avatarProcessing ? " processing" : ""}`}

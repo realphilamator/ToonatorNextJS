@@ -3,7 +3,6 @@ import { getTranslations, getLocale } from 'next-intl/server';
 import { getPopularToons, getNewestToons, resolveUsernames, getGoodPlaceCurrent } from "@/lib/api";
 import ToonCard from "@/components/ToonCard";
 import UsernameLink from "@/components/UsernameLink";
-import { SUPABASE_URL } from "@/lib/config";
 
 export async function generateMetadata() {
   const t = await getTranslations('metadata.home');
@@ -26,6 +25,7 @@ export async function generateMetadata() {
 }
 
 export default async function HomePage() {
+  console.log('API_URL:', process.env.API_URL, process.env.NEXT_PUBLIC_API_URL);
   const t = await getTranslations('home');
   const locale = await getLocale();
   const [popularToons, newestToons, goodPlace] = await Promise.all([

@@ -1,16 +1,17 @@
 "use client";
-
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
-import { db } from "@/lib/config";
 import { useAuth } from "@/hooks/auth";
+import { API_URL, setToken } from "@/lib/config";
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9_-]{3,30}$/;
 
 export default function RegisterClient() {
   const t = useTranslations('register');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { user, loading, signUp, loadUser } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password1, setPassword1] = useState("");
@@ -22,15 +23,44 @@ export default function RegisterClient() {
   const [errPasswordMatch, setErrPasswordMatch] = useState(false);
   const [errEmail, setErrEmail] = useState(false);
   const [errGeneral, setErrGeneral] = useState("");
-
   const [submitDisabled, setSubmitDisabled] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { user, loading } = useAuth();
+  // After successful signup, show the "check your email" screen
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  // Email verification via ?code= param
+  const [verifyStatus, setVerifyStatus] = useState(null); // null | "loading" | "success" | "error"
+  const [verifyMessage, setVerifyMessage] = useState("");
+
+  // On mount, check for ?code= and verify if present
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (!code) return;
+
+    setVerifyStatus("loading");
+    fetch(`${API_URL}/auth/verify-email?token=${encodeURIComponent(code)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.token) {
+          // Store the token and load the user — they're now logged in
+          setToken(data.token);
+          loadUser();
+          setVerifyStatus("success");
+          setVerifyMessage(t('verifySuccess', { defaultValue: "Your email has been verified! You can now use your account." }));
+        } else {
+          setVerifyStatus("error");
+          setVerifyMessage(data.error || t('verifyError', { defaultValue: "Invalid or expired verification link." }));
+        }
+      })
+      .catch(() => {
+        setVerifyStatus("error");
+        setVerifyMessage(t('verifyError', { defaultValue: "Something went wrong. Please try again." }));
+      });
+  }, []);
 
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/");
-    }
+    if (!loading && user && !searchParams.get("code")) router.replace("/");
   }, [user, loading, router]);
 
   useEffect(() => {
@@ -39,10 +69,44 @@ export default function RegisterClient() {
     setErrPassword(!password1);
     setErrEmail(!email);
     setErrPasswordMatch(password2.length > 0 && password1 !== password2);
-
-    const valid = usernameValid && password1 && password1 === password2 && email;
-    setSubmitDisabled(!valid);
+    setSubmitDisabled(!(usernameValid && password1 && password1 === password2 && email));
   }, [username, password1, password2, email]);
+
+  // ── Email verification screen (?code= param) ─────────────────────────────
+  if (verifyStatus) {
+    return (
+      <div id="content_wrap">
+        <div id="content">
+          <div className="sn">
+            <div className="content-sn registration">
+              {verifyStatus === "loading" && (
+                <p>{t('verifying', { defaultValue: "Verifying your email…" })}</p>
+              )}
+              {verifyStatus === "success" && (
+                <>
+                  <h1>{t('verifySuccessTitle', { defaultValue: "Email verified!" })}</h1>
+                  <p style={{ margin: "16px 0 20px" }}>{verifyMessage}</p>
+                  <button className="complete" onClick={() => router.push("/")}>
+                    {t('continueButton', { defaultValue: "Continue to site" })}
+                  </button>
+                </>
+              )}
+              {verifyStatus === "error" && (
+                <>
+                  <h1>{t('verifyErrorTitle', { defaultValue: "Verification failed" })}</h1>
+                  <p style={{ margin: "16px 0 20px", color: "red" }}>{verifyMessage}</p>
+                  <button className="complete" onClick={() => router.push("/register")}>
+                    {t('backToRegister', { defaultValue: "Back to register" })}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+          <div style={{ clear: "both" }} />
+        </div>
+      </div>
+    );
+  }
 
   if (loading || user) return null;
 
@@ -53,19 +117,56 @@ export default function RegisterClient() {
       return;
     }
 
-    const { error } = await db.auth.signUp({
-      email,
-      password: password1,
-      options: { data: { username } },
-    });
+    setIsSubmitting(true);
+    setErrGeneral("");
+
+    const { error } = await signUp(email, password1, username, t("code"));
+
+    setIsSubmitting(false);
 
     if (error) {
-      setErrGeneral(error.message);
+      setErrGeneral(error);
     } else {
-      router.push("/");
+      // Show the "check your email" screen instead of redirecting immediately
+      setRegisteredEmail(email);
+      setVerificationSent(true);
     }
   }
 
+  // ── Verification sent screen ──────────────────────────────────────────────
+  if (verificationSent) {
+    return (
+      <div id="content_wrap">
+        <div id="content">
+          <div className="sn">
+            <div className="content-sn registration">
+              <h1>{t('verifyTitle', { defaultValue: 'Check your email' })}</h1>
+              <p style={{ margin: "16px 0 8px" }}>
+                {t('verifyMessage', {
+                  defaultValue: "We've sent a verification link to:",
+                })}
+              </p>
+              <p style={{ fontWeight: "bold", marginBottom: "16px" }}>{registeredEmail}</p>
+              <p style={{ color: "#888", fontSize: "13px", marginBottom: "20px" }}>
+                {t('verifySubtext', {
+                  defaultValue: "Click the link in the email to activate your account. It expires in 24 hours.",
+                })}
+              </p>
+              <button
+                className="complete"
+                onClick={() => router.push("/")}
+              >
+                {t('continueButton', { defaultValue: 'Continue to site' })}
+              </button>
+            </div>
+          </div>
+          <div style={{ clear: "both" }} />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Registration form ─────────────────────────────────────────────────────
   return (
     <div id="content_wrap">
       <div id="content">
@@ -84,9 +185,7 @@ export default function RegisterClient() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              {errUsername && (
-                <span className="error">{t('usernameError')}</span>
-              )}
+              {errUsername && <span className="error">{t('usernameError')}</span>}
             </label>
 
             <label>
@@ -110,9 +209,7 @@ export default function RegisterClient() {
                 value={password2}
                 onChange={(e) => setPassword2(e.target.value)}
               />
-              {errPasswordMatch && (
-                <span className="error">{t('passwordMatchError')}</span>
-              )}
+              {errPasswordMatch && <span className="error">{t('passwordMatchError')}</span>}
             </label>
 
             <label>
@@ -132,17 +229,17 @@ export default function RegisterClient() {
               <button
                 className="complete"
                 id="reg_submit"
-                disabled={submitDisabled}
+                disabled={submitDisabled || isSubmitting}
                 onClick={handleRegister}
               >
-                {t('registerButton')}
+                {isSubmitting
+                  ? t('registeringButton', { defaultValue: 'Registering…' })
+                  : t('registerButton')}
               </button>
             </div>
 
             {errGeneral && (
-              <div className="error" style={{ marginTop: "10px" }}>
-                {errGeneral}
-              </div>
+              <div className="error" style={{ marginTop: "10px" }}>{errGeneral}</div>
             )}
           </div>
         </div>

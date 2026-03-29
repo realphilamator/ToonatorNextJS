@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/config";
+import { getToken, setToken, removeToken, apiFetch, API_URL } from "@/lib/config";
+import { getCurrentUser } from "@/lib/api";
 import { useUnreadCounts } from "@/hooks/useUnreadCounts";
 
 export function useAuth() {
@@ -11,34 +12,65 @@ export function useAuth() {
   const { unreadNotifications, unreadSpooders } = useUnreadCounts(user?.id ?? null);
 
   async function fetchSpiders(userId) {
-    const { data } = await db.from("profiles").select("spiders").eq("id", userId).single();
-    setSpiders(data?.spiders ?? 0);
+    const user = await getCurrentUser();
+    setSpiders(user?.spiders ?? 0);
+  }
+
+  async function loadUser() {
+    const token = getToken();
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    const data = await getCurrentUser();
+    if (data) {
+      setUser({ id: data.id, user_metadata: { username: data.username, avatar_toon: data.avatar_toon } });
+      setSpiders(data.spiders ?? 0);
+    } else {
+      removeToken();
+      setUser(null);
+    }
+    setLoading(false);
   }
 
   useEffect(() => {
-    db.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      setLoading(false);
-      if (u) fetchSpiders(u.id);
-    });
-
-    const { data: { subscription } } = db.auth.onAuthStateChange((_event, session) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        fetchSpiders(u.id);
-      } else {
-        setSpiders(0);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    loadUser();
   }, []);
 
   async function signOut() {
-    await db.auth.signOut();
+    removeToken();
+    setUser(null);
+    setSpiders(0);
+    window.location.href = "/";
   }
 
-  return { user, loading, signOut, spiders, unreadNotifications, unreadSpooders };
+  async function signIn(email, password) {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error };
+    setToken(data.token);
+    await loadUser();
+    return { error: null };
+  }
+
+  async function signUp(email, password, username, lang="en") {
+    const res = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, username, lang }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error };
+    setToken(data.token);
+    await loadUser();
+    return { error: null };
+  }
+
+  return { user, loading, signOut, signIn, signUp, spiders, unreadNotifications, unreadSpooders };
 }

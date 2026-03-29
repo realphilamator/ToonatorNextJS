@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Set this to true to enable maintenance mode
-const MAINTENANCE_MODE = true
-
 export default function middleware(request: NextRequest) {
-  // Check if maintenance mode is enabled
-  if (MAINTENANCE_MODE) {
+  // Check if maintenance mode is enabled via environment variable
+  const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'
+  
+  if (maintenanceMode) {
     // Allow access to maintenance page and static assets
     const pathname = request.nextUrl.pathname
     if (pathname === '/maintenance' || pathname.startsWith('/_next') || pathname.startsWith('/css') || pathname.startsWith('/img') || pathname.startsWith('/js')) {

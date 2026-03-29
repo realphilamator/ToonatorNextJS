@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { ungzip } from "pako";
 import { useTranslations } from 'next-intl';
 import UsernameLink from "@/components/UsernameLink";
 import UserAvatar from "@/components/UserAvatar";
+import { apiFetch, API_URL, getToken } from "@/lib/config";
+import { getCurrentUser } from "@/lib/api";
 
-const SUPABASE_URL = "https://ytyhhmwnnlkhhpvsurlm.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0eWhobXdubmxraGhwdnN1cmxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzcwNTAsImV4cCI6MjA4ODU1MzA1MH0.XZVH3j6xftSRULfhdttdq6JGIUSgHHJt9i-vXnALjH0";
-
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const STORAGE_URL = 'https://storage.m2inc.dev/retoon';
 
 function formatDate(iso) {
   if (!iso) return "";
@@ -23,7 +20,6 @@ function formatDate(iso) {
   );
 }
 
-// ─── Decompress frames ────────────────────────────────────────────────────────
 function resolveFrames(toon) {
   if (toon.frames_compressed) {
     try {
@@ -37,12 +33,16 @@ function resolveFrames(toon) {
     }
   }
   if (toon.frames) {
-    return Array.isArray(toon.frames) ? toon.frames : Object.values(toon.frames);
+    try {
+      const parsed = typeof toon.frames === 'string' ? JSON.parse(toon.frames) : toon.frames;
+      return Array.isArray(parsed) ? parsed : Object.values(parsed);
+    } catch {
+      return [];
+    }
   }
   return [];
 }
 
-// ─── Toon Player ──────────────────────────────────────────────────────────────
 function ToonPlayer({ frames, settings }) {
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -83,7 +83,6 @@ function ToonPlayer({ frames, settings }) {
   return <div ref={containerRef} style={{ lineHeight: 0 }} />;
 }
 
-// ─── Legacy Ruffle Player ─────────────────────────────────────────────────────
 function LegacyPlayer({ toonId }) {
   const containerRef = useRef(null);
 
@@ -121,7 +120,6 @@ function LegacyPlayer({ toonId }) {
   return <div ref={containerRef} style={{ width: "610px", height: "350px" }} />;
 }
 
-// ─── Main Draft Client Component ──────────────────────────────────────────────
 export default function DraftClient({ toonId, toon, author, continuedFrom, isLegacy }) {
   const t = useTranslations('draft');
   const [currentUser, setCurrentUser] = useState(null);
@@ -131,20 +129,33 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
   const toonSettings = toon.settings || {};
   const continueUrl = isLegacy
     ? `/draw/classic/?cont=${toonId}`
-    : `/draw/?continue=${toonId}`;
+    : `/draw/?draft=${toonId}`;
 
   useEffect(() => {
-    db.auth.getUser().then(({ data: { user } }) => {
-      setCurrentUser(user);
+    async function loadUser() {
+      const token = getToken();
+      if (!token) { setAuthLoading(false); return; }
+      
+      const user = await getCurrentUser();
+      if (user) setCurrentUser({ id: user.id, username: user.username });
       setAuthLoading(false);
-    });
+    }
+    
+    loadUser();
   }, []);
 
   const isOwner =
     !authLoading &&
     currentUser &&
     (currentUser.id === toon.user_id ||
-      currentUser.user_metadata?.username === author.username);
+      currentUser.username === author.username);
+
+  async function handleDelete(e) {
+    e.preventDefault();
+    if (!confirm(t('confirmRemove'))) return;
+    await apiFetch(`/animations/${toonId}`, { method: 'DELETE' });
+    window.location.href = "/";
+  }
 
   const title = toon.title || t('untitled');
   const description = toon.description || "";
@@ -156,7 +167,6 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
       <div id="content">
         <div id="toon_page">
 
-          {/* LEFT PANEL — player + title */}
           <div className="left_panel">
             <h2>{title}</h2>
             <div className="player" id="player_container">
@@ -166,14 +176,9 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
             </div>
           </div>
 
-          {/* RIGHT PANEL — author info + draft badge + owner actions */}
           <div className="info">
             <div className="author">
-              <UserAvatar
-                username={author.username}
-                size={100}
-                className="avatar"
-              />
+              <UserAvatar username={author.username} size={100} className="avatar" />
               <div className="author_name">
                 <UsernameLink username={author.username} />
               </div>
@@ -182,23 +187,18 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
               </div>
             </div>
 
-            {/* Draft badge */}
             <div className="prizes">
               <div className="prize draft">{t('badge')}</div>
             </div>
 
-            {/* Continued from */}
             {continuedFrom && (
               <div className="continued_from" style={{ margin: "5px 0", fontSize: 13 }}>
                 {t('continuedFrom')}{" "}
-                <a href={`/toon/${continuedFrom.id}`}>
-                  {continuedFrom.title}
-                </a>{" "}
+                <a href={`/toon/${continuedFrom.id}`}>{continuedFrom.title}</a>{" "}
                 by <UsernameLink username={continuedFrom.author} />
               </div>
             )}
 
-            {/* Owner-only actions */}
             {isOwner && (
               <div className="buttons">
                 <div className="draw">
@@ -208,22 +208,7 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
                   </a>
                 </div>
                 <div className="remove">
-                  <a
-                    href="#"
-                    className="hover"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (confirm(t('confirmRemove'))) {
-                        const table = isLegacy
-                          ? "legacy_animations"
-                          : "animations";
-                        db.from(table)
-                          .delete()
-                          .eq("id", toonId)
-                          .then(() => { window.location.href = "/"; });
-                      }
-                    }}
-                  >
+                  <a href="#" className="hover" onClick={handleDelete}>
                     <span>{t('removeDraft')}</span>
                   </a>
                 </div>
@@ -241,15 +226,9 @@ export default function DraftClient({ toonId, toon, author, continuedFrom, isLeg
             )}
 
             {tags.length > 0 && (
-              <div
-                className="tags"
-                id="tags_container"
-                style={{ margin: "5px 0" }}
-              >
+              <div className="tags" id="tags_container" style={{ margin: "5px 0" }}>
                 {tags.map((tag) => (
-                  <a key={tag} href="#" className="tag">
-                    {tag}
-                  </a>
+                  <a key={tag} href="#" className="tag">{tag}</a>
                 ))}
               </div>
             )}

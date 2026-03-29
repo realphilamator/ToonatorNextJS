@@ -3,16 +3,18 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import UsernameLink from "./UsernameLink";
 import { useState, useEffect } from "react";
-import { db } from "@/lib/config";
+import { apiFetch } from "@/lib/config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LEGACY_BASE = "https://storage.m2inc.dev/retoon/legacyAnimations";
+const PREVIEW_BASE = "https://storage.m2inc.dev/retoon/previews";
 
 export default function ToonCard({
   toon,
   username,
   isOwnProfile = false,
   currentUserId = null,
-  inAlbum,
+  inAlbum = true,
   onAlbumToggle,
   commentCount: commentCountProp,
 }) {
@@ -26,38 +28,35 @@ export default function ToonCard({
   const isLegacy = !UUID_RE.test(toon.id);
   const toonHref = toon.is_draft ? `/draft/${toon.id}` : `/toon/${toon.id}`;
 
+  // ── Preview URL ──────────────────────────────────────────────────────────────
+  const previewSrc =
+    toon.preview_url ||
+    (isLegacy
+      ? `${LEGACY_BASE}/${toon.id}_100.gif`
+      : `${PREVIEW_BASE}/${toon.id}_100.gif`);
+
   // ── Comment count ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (commentCountProp != null) return;
-    const column = isLegacy ? "legacy_animation_id" : "animation_id";
-    db.from("comments")
-      .select("*", { count: "exact", head: true })
-      .eq(column, toon.id)
-      .then(({ count }) => setCommentCountFetched(count || 0));
+    apiFetch(`/comments/${toon.id}?limit=0`).then((data) => {
+      setCommentCountFetched(Array.isArray(data) ? data.length : 0);
+    });
   }, [toon.id, isLegacy, commentCountProp]);
 
   // ── Fetch continued_from info ────────────────────────────────────────────────
   useEffect(() => {
     if (!toon.continued_from) return;
-
-    const isLegacyContinuation = !UUID_RE.test(toon.continued_from);
-    const table = isLegacyContinuation ? "legacy_animations" : "animations";
-
-    db.from(table)
-      .select("id, title, profiles(username)")
-      .eq("id", toon.continued_from)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setContinuedFromInfo({
-            id: data.id,
-            title: data.title || "Untitled",
-            username: data.profiles?.username || "",
-          });
-        } else {
-          setContinuedFromInfo({ id: toon.continued_from, title: "Untitled", username: "" });
-        }
-      });
+    apiFetch(`/animations/${toon.continued_from}`).then((data) => {
+      if (data) {
+        setContinuedFromInfo({
+          id: data.id,
+          title: data.title || "Untitled",
+          username: data.username || "",
+        });
+      } else {
+        setContinuedFromInfo({ id: toon.continued_from, title: "Untitled", username: "" });
+      }
+    });
   }, [toon.continued_from]);
 
   // ── Album toggle ─────────────────────────────────────────────────────────────
@@ -98,7 +97,6 @@ export default function ToonCard({
     ? <> {continuedSymbol}{soundSymbol}</>
     : null;
 
-  // Extract just the unit word from the ICU plural string for the bold-number variant
   const frameUnit = frameCount === 1
     ? t("frames", { count: 1 }).replace("1", "").trim()
     : t("frames", { count: 2 }).replace("2", "").trim();
@@ -122,7 +120,7 @@ export default function ToonCard({
       <div className="toon_image">
         <Link href={toonHref} title={title}>
           <img
-            src={toon.preview_url}
+            src={previewSrc}
             width={200}
             height={100}
             alt={title}
