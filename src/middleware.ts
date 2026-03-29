@@ -2,19 +2,19 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export default function middleware(request: NextRequest) {
-  // Check if maintenance mode is enabled via environment variable
-  const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'
+  // // Check if maintenance mode is enabled via environment variable
+  // const maintenanceMode = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === 'true'
   
-  if (maintenanceMode) {
-    // Allow access to maintenance page and static assets
-    const pathname = request.nextUrl.pathname
-    if (pathname === '/maintenance' || pathname.startsWith('/_next') || pathname.startsWith('/css') || pathname.startsWith('/img') || pathname.startsWith('/js')) {
-      return NextResponse.next()
-    }
+  // if (maintenanceMode) {
+  //   // Allow access to maintenance page and static assets
+  //   const pathname = request.nextUrl.pathname
+  //   if (pathname === '/maintenance' || pathname.startsWith('/_next') || pathname.startsWith('/css') || pathname.startsWith('/img') || pathname.startsWith('/js')) {
+  //     return NextResponse.next()
+  //   }
     
-    // Redirect all other requests to maintenance page
-    return NextResponse.redirect(new URL('/maintenance', request.url))
-  }
+  //   // Redirect all other requests to maintenance page
+  //   return NextResponse.redirect(new URL('/maintenance', request.url))
+  // }
 
   const host = request.headers.get('host') || ''
 
